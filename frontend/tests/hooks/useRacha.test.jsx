@@ -1,0 +1,110 @@
+import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
+
+vi.mock('../../src/services/api', () => ({
+  api: { getRacha: vi.fn() },
+}));
+
+const handlers = new Map();
+const fakeSocket = {
+  emit: vi.fn(),
+  on: vi.fn((evt, cb) => handlers.set(evt, cb)),
+  off: vi.fn((evt) => handlers.delete(evt)),
+};
+vi.mock('../../src/services/socket', () => ({
+  getSocket: () => fakeSocket,
+}));
+
+import { api } from '../../src/services/api';
+import { useRacha } from '../../src/hooks/useRacha';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  handlers.clear();
+});
+
+describe('useRacha', () => {
+  test('carrega o racha e expõe o estado inicial', async () => {
+    api.getRacha.mockResolvedValue({
+      racha: { id: 'abc', nome_dono: 'Pedro', data_abertura: null },
+      jogadores: [{ id: 1, nome: 'A' }],
+      maxJogadores: 18,
+      listaAberta: true,
+    });
+
+    const { result } = renderHook(() => useRacha('abc'));
+
+    await waitFor(() => {
+      expect(result.current[0].loading).toBe(false);
+    });
+    expect(result.current[0].racha.nome_dono).toBe('Pedro');
+    expect(result.current[0].jogadores).toHaveLength(1);
+    expect(result.current[0].listaAberta).toBe(true);
+    expect(fakeSocket.emit).toHaveBeenCalledWith('racha:entrar', { rachaId: 'abc' });
+  });
+
+  test('atualiza jogadores ao receber evento jogadores:atualizados', async () => {
+    api.getRacha.mockResolvedValue({
+      racha: { id: 'abc', nome_dono: 'Pedro' },
+      jogadores: [],
+      maxJogadores: 18,
+      listaAberta: true,
+    });
+
+    const { result } = renderHook(() => useRacha('abc'));
+    await waitFor(() => expect(result.current[0].loading).toBe(false));
+
+    act(() => {
+      handlers.get('jogadores:atualizados')({
+        jogadores: [{ id: 1, nome: 'Novo' }],
+      });
+    });
+
+    expect(result.current[0].jogadores).toHaveLength(1);
+    expect(result.current[0].jogadores[0].nome).toBe('Novo');
+  });
+
+  test('marca fechado=true quando atinge maxJogadores', async () => {
+    api.getRacha.mockResolvedValue({
+      racha: { id: 'abc', nome_dono: 'Pedro' },
+      jogadores: [],
+      maxJogadores: 2,
+      listaAberta: true,
+    });
+
+    const { result } = renderHook(() => useRacha('abc'));
+    await waitFor(() => expect(result.current[0].loading).toBe(false));
+
+    act(() => {
+      handlers.get('jogadores:atualizados')({
+        jogadores: [{ id: 1, nome: 'A' }, { id: 2, nome: 'B' }],
+      });
+    });
+
+    expect(result.current[0].fechado).toBe(true);
+  });
+
+  test('refresh re-busca o racha', async () => {
+    api.getRacha.mockResolvedValue({
+      racha: { id: 'abc' },
+      jogadores: [],
+      maxJogadores: 18,
+      listaAberta: false,
+    });
+    const { result } = renderHook(() => useRacha('abc'));
+    await waitFor(() => expect(result.current[0].loading).toBe(false));
+
+    api.getRacha.mockResolvedValue({
+      racha: { id: 'abc' },
+      jogadores: [],
+      maxJogadores: 18,
+      listaAberta: true,
+    });
+
+    await act(async () => {
+      await result.current[1].refresh();
+    });
+
+    expect(result.current[0].listaAberta).toBe(true);
+  });
+});

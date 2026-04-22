@@ -1,0 +1,36 @@
+import { describe, expect, test } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import PlayerList from '../../src/components/PlayerList.jsx';
+
+describe('<PlayerList />', () => {
+  test('renderiza max slots, com vagas abertas para os faltantes', () => {
+    render(
+      <PlayerList
+        max={18}
+        jogadores={[{ id: 1, nome: 'Pedro' }, { id: 2, nome: 'João' }]}
+      />,
+    );
+
+    const itens = screen.getAllByRole('listitem');
+    expect(itens).toHaveLength(18);
+
+    expect(screen.getByText('Pedro')).toBeInTheDocument();
+    expect(screen.getByText('João')).toBeInTheDocument();
+    expect(screen.getAllByText('vaga aberta')).toHaveLength(16);
+  });
+
+  test('numera os slots começando em 01', () => {
+    render(<PlayerList max={3} jogadores={[{ id: 1, nome: 'A' }]} />);
+    expect(screen.getByText('01')).toBeInTheDocument();
+    expect(screen.getByText('02')).toBeInTheDocument();
+    expect(screen.getByText('03')).toBeInTheDocument();
+  });
+
+  test('marca slots preenchidos com a classe "filled"', () => {
+    const { container } = render(
+      <PlayerList max={2} jogadores={[{ id: 1, nome: 'A' }]} />,
+    );
+    expect(container.querySelectorAll('.filled')).toHaveLength(1);
+    expect(container.querySelectorAll('.empty')).toHaveLength(1);
+  });
+});
