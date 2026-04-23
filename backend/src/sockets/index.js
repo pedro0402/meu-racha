@@ -1,4 +1,5 @@
 const rachaService = require('../services/rachaService');
+const { isRachaExpirada } = require('../utils/time');
 
 /**
  * Configura os handlers de Socket.IO.
@@ -13,6 +14,11 @@ function attachSocket(io) {
       const racha = rachaService.getRacha(rachaId);
       if (!racha) {
         socket.emit('racha:erro', { message: 'Racha não encontrado' });
+        return;
+      }
+
+      if (isRachaExpirada(racha)) {
+        socket.emit('racha:erro', { message: 'A lista deste racha expirou e não está mais disponível.' });
         return;
       }
 

@@ -6,6 +6,7 @@ const validateTime = require('../middleware/validateTime');
 const {
   isListaAbertaParaRacha,
   isValidDataAbertura,
+  isRachaExpirada,
   nowAsLocalString,
 } = require('../utils/time');
 const config = require('../config');
@@ -106,6 +107,15 @@ function buildRouter(io) {
   router.get('/:id', (req, res) => {
     const racha = rachaService.getRacha(req.params.id);
     if (!racha) return res.status(404).json({ error: 'RACHA_NAO_ENCONTRADO' });
+    if (isRachaExpirada(racha)) {
+      return res.status(410).json({
+        error: 'LISTA_EXPIRADA',
+        message: 'A lista deste racha expirou e não está mais disponível.',
+        racha: { ...racha, email: undefined, telefone: undefined },
+        timezone: config.timezone,
+        agora: nowAsLocalString(),
+      });
+    }
 
     const jogadores = rachaService.listarJogadores(racha.id);
     return res.json({

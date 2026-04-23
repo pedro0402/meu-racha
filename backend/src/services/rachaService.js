@@ -2,6 +2,7 @@ const { customAlphabet } = require('nanoid');
 const db = require('../db/database');
 const config = require('../config');
 const { normalizeName } = require('../utils/normalize');
+const { addHoursToLocalString } = require('../utils/time');
 
 /**
  * Gera um ID curto e amigável para o link compartilhável.
@@ -12,8 +13,8 @@ const genId = customAlphabet('abcdefghijkmnopqrstuvwxyz23456789', 10);
 // ----------- Statements pré-compilados (mais performático) -----------
 
 const stmtInsertRacha = db.prepare(`
-  INSERT INTO rachas (id, nome_dono, email, telefone, data_abertura, max_jogadores)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO rachas (id, nome_dono, email, telefone, data_abertura, expira_em, max_jogadores)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
 
 const stmtGetRacha = db.prepare(`SELECT * FROM rachas WHERE id = ?`);
@@ -49,7 +50,10 @@ function criarRacha({
   max_jogadores = config.maxJogadores,
 }) {
   const id = genId();
-  stmtInsertRacha.run(id, nome_dono, email, telefone, data_abertura, max_jogadores);
+  const expiraEm = data_abertura
+    ? addHoursToLocalString(data_abertura, config.listaExpiracaoHoras)
+    : null;
+  stmtInsertRacha.run(id, nome_dono, email, telefone, data_abertura, expiraEm, max_jogadores);
   return getRacha(id);
 }
 

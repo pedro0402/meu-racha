@@ -12,6 +12,15 @@ export default function RachaPage() {
   if (estado.error)
     return <div className="card alert alert-error">{estado.error}</div>;
 
+  if (estado.expirado) {
+    return (
+      <div className="card alert alert-warn">
+        <h2>Lista expirada</h2>
+        <p>A lista deste racha expirou e não está mais disponível.</p>
+      </div>
+    );
+  }
+
   const total = estado.jogadores.length;
   const { data_abertura } = estado.racha;
 

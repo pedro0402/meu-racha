@@ -10,6 +10,7 @@ jest.mock('../../src/services/emailService', () => ({
 const request = require('supertest');
 const { createApp } = require('../../src/app');
 const db = require('../../src/db/database');
+const rachaService = require('../../src/services/rachaService');
 const { gerarPdfRacha } = require('../../src/services/pdfService');
 const { enviarPdfRacha } = require('../../src/services/emailService');
 
@@ -175,6 +176,19 @@ describe('POST /api/rachas', () => {
     expect(res.body.racha.data_abertura).toBe('2026-04-20T12:00');
   });
 
+  test('400 quando racha está expirado ao consultar', async () => {
+    const racha = rachaService.criarRacha({
+      nome_dono: 'Expirado',
+      email: 'expirado@x.com',
+      telefone: '11999999999',
+      data_abertura: '2026-04-18T12:00',
+    });
+
+    const res = await request(app).get(`/api/rachas/${racha.id}`);
+    expect(res.status).toBe(410);
+    expect(res.body.error).toBe('LISTA_EXPIRADA');
+  });
+
   test('aceita max_jogadores customizado', async () => {
     const res = await request(app)
       .post('/api/rachas')
@@ -275,6 +289,20 @@ describe('POST /api/rachas/:id/jogadores', () => {
       .send({ nome: 'Pedro' });
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('LISTA_FECHADA');
+  });
+
+  test('410 LISTA_EXPIRADA quando a lista já passou do prazo', async () => {
+    const expired = rachaService.criarRacha({
+      nome_dono: 'Pedro',
+      email: 'pedro@x.com',
+      telefone: '11999999999',
+      data_abertura: '2026-04-18T12:00',
+    });
+    const res = await request(app)
+      .post(`/api/rachas/${expired.id}/jogadores`)
+      .send({ nome: 'Pedro' });
+    expect(res.status).toBe(410);
+    expect(res.body.error).toBe('LISTA_EXPIRADA');
   });
 
   test('403 LISTA_FECHADA com regra padrão fora de domingo 12h', async () => {

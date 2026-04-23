@@ -4,6 +4,7 @@ const config = {
   port: parseInt(process.env.PORT || '3001', 10),
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   maxJogadores: parseInt(process.env.MAX_JOGADORES || '18', 10),
+  listaExpiracaoHoras: parseInt(process.env.LISTA_EXPIRACAO_HORAS || '24', 10),
   diaPermitido: parseInt(process.env.DIA_PERMITIDO || '0', 10),
   horaMinima: parseInt(process.env.HORA_MINIMA || '12', 10),
   timezone: process.env.TIMEZONE || 'America/Sao_Paulo',

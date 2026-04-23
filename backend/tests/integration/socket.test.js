@@ -8,6 +8,7 @@ jest.mock('../../src/services/emailService', () => ({
 const { createApp } = require('../../src/app');
 const db = require('../../src/db/database');
 const rachaService = require('../../src/services/rachaService');
+const { nowAsLocalString } = require('../../src/utils/time');
 const { io: ioClient } = require('socket.io-client');
 const request = require('supertest');
 
@@ -54,7 +55,7 @@ function esperaEvento(socket, evento, ms = 2000) {
 describe('Socket.IO', () => {
   test('cliente recebe lista atual ao entrar na sala do racha', async () => {
     const racha = rachaService.criarRacha({
-      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: '2020-01-01T00:00',
+      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(),
     });
     rachaService.adicionarJogador(racha.id, 'Existente');
 
@@ -72,7 +73,7 @@ describe('Socket.IO', () => {
 
   test('outro cliente recebe broadcast quando alguém entra via REST', async () => {
     const racha = rachaService.criarRacha({
-      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: '2020-01-01T00:00',
+      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(),
     });
 
     const observador = novoCliente();
@@ -94,7 +95,7 @@ describe('Socket.IO', () => {
 
   test('emite racha:fechado para a sala quando atinge limite', async () => {
     const racha = rachaService.criarRacha({
-      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: '2020-01-01T00:00', max_jogadores: 3,
+      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(), max_jogadores: 3,
     });
     for (let i = 0; i < 2; i++) {
       rachaService.adicionarJogador(racha.id, `J${i}`);
@@ -125,6 +126,21 @@ describe('Socket.IO', () => {
     socket.emit('racha:entrar', { rachaId: 'naoexiste' });
     const payload = await esperaEvento(socket, 'racha:erro');
     expect(payload.message).toMatch(/Racha n[ãa]o encontrado/);
+
+    socket.disconnect();
+  });
+
+  test('racha expirado recebe racha:erro ao entrar', async () => {
+    const racha = rachaService.criarRacha({
+      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: '2026-04-18T12:00',
+    });
+
+    const socket = novoCliente();
+    await new Promise((r) => socket.on('connect', r));
+
+    socket.emit('racha:entrar', { rachaId: racha.id });
+    const payload = await esperaEvento(socket, 'racha:erro');
+    expect(payload.message).toMatch(/expirou/i);
 
     socket.disconnect();
   });

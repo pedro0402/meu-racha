@@ -45,6 +45,26 @@ function nowAsLocalString() {
   return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}`;
 }
 
+function addHoursToLocalString(value, hours) {
+  if (typeof value !== 'string' || !Number.isFinite(hours)) return null;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const [, year, month, day, hour, minute] = match;
+  const date = new Date(Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+  ));
+  date.setUTCHours(date.getUTCHours() + hours);
+
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+}
+
 /**
  * Regra padrão (fallback): só abre no DIA_PERMITIDO a partir
  * de HORA_MINIMA. Mantida para retrocompatibilidade com rachas
@@ -62,10 +82,16 @@ function isListaAbertaPadrao() {
  */
 function isListaAbertaParaRacha(racha) {
   if (!racha) return false;
+  if (isRachaExpirada(racha)) return false;
   if (racha.data_abertura) {
     return nowAsLocalString() >= racha.data_abertura;
   }
   return isListaAbertaPadrao();
+}
+
+function isRachaExpirada(racha) {
+  if (!racha || !racha.expira_em) return false;
+  return nowAsLocalString() >= racha.expira_em;
 }
 
 /**
@@ -80,7 +106,9 @@ function isValidDataAbertura(value) {
 module.exports = {
   nowInTimezone,
   nowAsLocalString,
+  addHoursToLocalString,
   isListaAbertaPadrao,
   isListaAbertaParaRacha,
+  isRachaExpirada,
   isValidDataAbertura,
 };

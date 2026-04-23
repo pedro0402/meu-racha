@@ -18,6 +18,7 @@ export function useRacha(rachaId) {
     maxJogadores: 18,
     listaAberta: false,
     fechado: false,
+    expirado: false,
   });
 
   const carregar = useCallback(() => {
@@ -36,6 +37,21 @@ export function useRacha(rachaId) {
         }));
       })
       .catch((err) => {
+        if (err.status === 410) {
+          setEstado((s) => ({
+            ...s,
+            loading: false,
+            error: null,
+            racha: err.data?.racha || s.racha,
+            jogadores: [],
+            maxJogadores: s.maxJogadores,
+            listaAberta: false,
+            fechado: true,
+            expirado: true,
+          }));
+          return;
+        }
+
         setEstado((s) => ({ ...s, loading: false, error: err.message }));
       });
   }, [rachaId]);

@@ -107,4 +107,23 @@ describe('useRacha', () => {
 
     expect(result.current[0].listaAberta).toBe(true);
   });
+
+  test('marca expirado=true quando a API responde 410', async () => {
+    const erro = new Error('A lista deste racha expirou e não está mais disponível.');
+    erro.status = 410;
+    erro.data = {
+      racha: { id: 'abc', nome_dono: 'Pedro', expira_em: '2026-04-19T12:00' },
+    };
+    api.getRacha.mockRejectedValue(erro);
+
+    const { result } = renderHook(() => useRacha('abc'));
+
+    await waitFor(() => {
+      expect(result.current[0].loading).toBe(false);
+    });
+
+    expect(result.current[0].expirado).toBe(true);
+    expect(result.current[0].error).toBeNull();
+    expect(result.current[0].racha.nome_dono).toBe('Pedro');
+  });
 });
