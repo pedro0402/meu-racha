@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 describe('<CreateRachaPage />', () => {
-  test('inicia o campo de data no formato dd/MM/YYYY', async () => {
+  test('inicia o campo de data vazio com placeholder dd/MM/AAAA', async () => {
     api.criarRacha.mockResolvedValue({
       shareUrl: 'http://localhost:5173/racha/abc',
       racha: { id: 'abc', data_abertura: null, max_jogadores: 10 },
@@ -31,7 +31,8 @@ describe('<CreateRachaPage />', () => {
     render(<CreateRachaPage />);
 
     const data = screen.getByLabelText(/data/i);
-    expect(data.value).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+    expect(data).toHaveValue('');
+    expect(data).toHaveAttribute('placeholder', 'DD/MM/AAAA');
   });
 
   test('formata telefone com máscara brasileira', async () => {
@@ -80,6 +81,9 @@ describe('<CreateRachaPage />', () => {
     const maxInput = screen.getByLabelText(/máximo de jogadores/i);
     await user.clear(maxInput);
     await user.type(maxInput, '10');
+
+    const data = screen.getByLabelText(/data/i);
+    await user.type(data, '31/12/2026');
 
     await user.click(screen.getByRole('button', { name: /criar racha/i }));
 

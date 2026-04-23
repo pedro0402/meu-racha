@@ -2,26 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 
-/**
- * Sugere "próximo domingo" como data padrão (formato YYYY-MM-DD).
- */
-function defaultProximoDomingo() {
-  const agora = new Date();
-  const diasAteDomingo = (7 - agora.getDay()) % 7 || 7;
-  const proximo = new Date(agora);
-  proximo.setDate(agora.getDate() + diasAteDomingo);
-
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${proximo.getFullYear()}-${pad(proximo.getMonth() + 1)}-${pad(proximo.getDate())}`;
-}
-
-function formatDateBr(isoDate) {
-  if (!isoDate) return '';
-  const [year, month, day] = isoDate.split('-');
-  if (!year || !month || !day) return isoDate;
-  return `${day}/${month}/${year}`;
-}
-
 function maskData(value) {
   const digits = value.replace(/\D/g, '').slice(0, 8);
   if (digits.length <= 2) return digits;
@@ -68,7 +48,7 @@ export default function CreateRachaPage() {
     email: '',
     telefone: '',
     max_jogadores: 18,
-    data: formatDateBr(defaultProximoDomingo()),
+    data: '',
     hora: '12:00',
   });
   const [criado, setCriado] = useState(null);
