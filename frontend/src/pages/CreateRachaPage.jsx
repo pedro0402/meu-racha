@@ -49,7 +49,7 @@ export default function CreateRachaPage() {
     telefone: '',
     max_jogadores: 18,
     data: '',
-    hora: '12:00',
+    hora: '',
   });
   const [criado, setCriado] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -204,6 +204,7 @@ export default function CreateRachaPage() {
               step="300"
               value={form.hora}
               onChange={update('hora')}
+              placeholder="HH:MM"
               required
             />
           </label>

@@ -35,6 +35,19 @@ describe('<CreateRachaPage />', () => {
     expect(data).toHaveAttribute('placeholder', 'DD/MM/AAAA');
   });
 
+  test('inicia o campo de hora vazio com placeholder HH:MM', async () => {
+    api.criarRacha.mockResolvedValue({
+      shareUrl: 'http://localhost:5173/racha/abc',
+      racha: { id: 'abc', data_abertura: null, max_jogadores: 10 },
+    });
+
+    render(<CreateRachaPage />);
+
+    const hora = screen.getByLabelText(/hora/i);
+    expect(hora).toHaveValue('');
+    expect(hora).toHaveAttribute('placeholder', 'HH:MM');
+  });
+
   test('formata telefone com máscara brasileira', async () => {
     api.criarRacha.mockResolvedValue({
       shareUrl: 'http://localhost:5173/racha/abc',
@@ -85,6 +98,9 @@ describe('<CreateRachaPage />', () => {
     const data = screen.getByLabelText(/data/i);
     await user.type(data, '31/12/2026');
 
+    const hora = screen.getByLabelText(/hora/i);
+    await user.type(hora, '12:00');
+
     await user.click(screen.getByRole('button', { name: /criar racha/i }));
 
     await waitFor(() => {
@@ -119,6 +135,9 @@ describe('<CreateRachaPage />', () => {
     const data = screen.getByLabelText(/data/i);
     await user.clear(data);
     await user.type(data, '31/12/2026');
+
+    const hora = screen.getByLabelText(/hora/i);
+    await user.type(hora, '12:00');
 
     await user.click(screen.getByRole('button', { name: /criar racha/i }));
 
