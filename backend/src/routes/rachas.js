@@ -10,6 +10,16 @@ const {
 } = require('../utils/time');
 const config = require('../config');
 
+const LIMITES_CRIACAO = {
+  nome_dono: 120,
+  email: 254,
+  telefone: 20,
+};
+
+function campoExcedeLimite(valor, limite) {
+  return typeof valor === 'string' && valor.trim().length > limite;
+}
+
 function buildRouter(io) {
   const router = express.Router();
 
@@ -20,6 +30,27 @@ function buildRouter(io) {
       return res.status(400).json({
         error: 'CAMPOS_OBRIGATORIOS',
         message: 'Informe nome_dono, email e telefone.',
+      });
+    }
+
+    if (campoExcedeLimite(nome_dono, LIMITES_CRIACAO.nome_dono)) {
+      return res.status(400).json({
+        error: 'NOME_DONO_INVALIDO',
+        message: 'nome_dono deve ter no máximo 120 caracteres.',
+      });
+    }
+
+    if (campoExcedeLimite(email, LIMITES_CRIACAO.email)) {
+      return res.status(400).json({
+        error: 'EMAIL_INVALIDO',
+        message: 'email deve ter no máximo 254 caracteres.',
+      });
+    }
+
+    if (campoExcedeLimite(telefone, LIMITES_CRIACAO.telefone)) {
+      return res.status(400).json({
+        error: 'TELEFONE_INVALIDO',
+        message: 'telefone deve ter no máximo 20 caracteres.',
       });
     }
 

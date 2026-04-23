@@ -81,7 +81,7 @@ export default function CreateRachaPage() {
     setLoading(true);
     try {
       const data = await api.criarRacha({
-        nome_dono: form.nome_dono,
+        nome_dono: form.nome_dono.trim(),
         email: normalizeEmail(form.email),
         telefone: onlyDigits(form.telefone),
         max_jogadores: Number(form.max_jogadores),
@@ -134,6 +134,7 @@ export default function CreateRachaPage() {
           type="text"
           value={form.nome_dono}
           onChange={update('nome_dono')}
+          maxLength={120}
           placeholder="Ex.: João da Silva"
           required
         />
@@ -145,6 +146,7 @@ export default function CreateRachaPage() {
           type="email"
           value={form.email}
           onChange={update('email')}
+          maxLength={254}
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck="false"
@@ -160,6 +162,7 @@ export default function CreateRachaPage() {
           inputMode="tel"
           value={form.telefone}
           onChange={update('telefone')}
+          maxLength={15}
           placeholder="(11) 99999-9999"
           required
         />
@@ -188,6 +191,7 @@ export default function CreateRachaPage() {
               inputMode="numeric"
               value={form.data}
               onChange={update('data')}
+              maxLength={10}
               placeholder="DD/MM/AAAA"
               required
             />

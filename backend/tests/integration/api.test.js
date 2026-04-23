@@ -99,6 +99,49 @@ describe('POST /api/rachas', () => {
     expect(res.body.error).toBe('EMAIL_INVALIDO');
   });
 
+  test('400 quando nome_dono excede o limite', async () => {
+    const res = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ nome_dono: 'A'.repeat(121) }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('NOME_DONO_INVALIDO');
+  });
+
+  test('400 quando email excede o limite', async () => {
+    const local = 'a'.repeat(250);
+    const res = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ email: `${local}@x.com` }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('EMAIL_INVALIDO');
+  });
+
+  test('400 quando telefone excede o limite', async () => {
+    const res = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ telefone: '1'.repeat(21) }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('TELEFONE_INVALIDO');
+  });
+
+  test('trata payload com caracteres SQL como texto literal', async () => {
+    const payload = corpoCriacao({
+      nome_dono: "Pedro');--",
+      email: 'pedro.injection@example.com',
+      telefone: "11) 99999-9999",
+    });
+
+    const res = await request(app).post('/api/rachas').send(payload);
+
+    expect(res.status).toBe(201);
+    expect(res.body.racha.nome_dono).toBe("Pedro');--");
+
+    const segundo = await request(app).post('/api/rachas').send(corpoCriacao({
+      nome_dono: 'Segundo racha',
+    }));
+    expect(segundo.status).toBe(201);
+  });
+
   test('400 quando data_abertura tem formato inválido', async () => {
     const res = await request(app)
       .post('/api/rachas')
