@@ -48,6 +48,17 @@ describe('<CreateRachaPage />', () => {
     expect(hora).toHaveAttribute('placeholder', 'HH:MM');
   });
 
+  test('mostra orientação sobre o mínimo de jogadores', async () => {
+    api.criarRacha.mockResolvedValue({
+      shareUrl: 'http://localhost:5173/racha/abc',
+      racha: { id: 'abc', data_abertura: null, max_jogadores: 10 },
+    });
+
+    render(<CreateRachaPage />);
+
+    expect(screen.getByText(/mínimo de 2 jogadores para criar a lista/i)).toBeInTheDocument();
+  });
+
   test('formata telefone com máscara brasileira', async () => {
     api.criarRacha.mockResolvedValue({
       shareUrl: 'http://localhost:5173/racha/abc',

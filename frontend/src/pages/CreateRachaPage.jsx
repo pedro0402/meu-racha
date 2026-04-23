@@ -178,6 +178,7 @@ export default function CreateRachaPage() {
           onChange={update('max_jogadores')}
           required
         />
+        <small className="muted">Mínimo de 2 jogadores para criar a lista.</small>
       </label>
 
       <fieldset className="datetime-fieldset">
