@@ -27,6 +27,7 @@ function init() {
       nome_dono      TEXT NOT NULL,
       email          TEXT NOT NULL,
       telefone       TEXT NOT NULL,
+      max_jogadores  INTEGER NOT NULL DEFAULT 18,
       data_criacao   TEXT NOT NULL DEFAULT (datetime('now')),
       data_abertura  TEXT,
       pdf_gerado     INTEGER NOT NULL DEFAULT 0
@@ -49,6 +50,9 @@ function init() {
   const cols = db.prepare(`PRAGMA table_info(rachas)`).all();
   if (!cols.some((c) => c.name === 'data_abertura')) {
     db.exec(`ALTER TABLE rachas ADD COLUMN data_abertura TEXT`);
+  }
+  if (!cols.some((c) => c.name === 'max_jogadores')) {
+    db.exec(`ALTER TABLE rachas ADD COLUMN max_jogadores INTEGER NOT NULL DEFAULT 18`);
   }
 }
 

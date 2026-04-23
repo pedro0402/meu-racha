@@ -10,6 +10,7 @@ function novoRacha(overrides = {}) {
     nome_dono: 'João Organizador',
     email: 'joao@x.com',
     telefone: '11999999999',
+    max_jogadores: 18,
     ...overrides,
   });
 }
@@ -21,11 +22,17 @@ describe('criarRacha / getRacha', () => {
     expect(racha.nome_dono).toBe('João Organizador');
     expect(racha.pdf_gerado).toBe(0);
     expect(racha.data_abertura).toBeNull();
+    expect(racha.max_jogadores).toBe(18);
   });
 
   test('aceita data_abertura opcional', () => {
     const racha = novoRacha({ data_abertura: '2026-04-19T12:00' });
     expect(racha.data_abertura).toBe('2026-04-19T12:00');
+  });
+
+  test('aceita max_jogadores customizado', () => {
+    const racha = novoRacha({ max_jogadores: 12 });
+    expect(racha.max_jogadores).toBe(12);
   });
 
   test('getRacha retorna undefined quando não existe', () => {
@@ -84,8 +91,8 @@ describe('adicionarJogador', () => {
     );
   });
 
-  test('NUNCA ultrapassa o limite (concorrência simulada)', () => {
-    const racha = novoRacha();
+  test('NUNCA ultrapassa o limite configurado (concorrência simulada)', () => {
+    const racha = novoRacha({ max_jogadores: 5 });
     const tentativas = 50;
     let sucessos = 0;
     let falhas = 0;
@@ -102,15 +109,15 @@ describe('adicionarJogador', () => {
       }
     }
 
-    expect(sucessos).toBe(18);
-    expect(falhas).toBe(tentativas - 18);
-    expect(rachaService.contarJogadores(racha.id)).toBe(18);
+    expect(sucessos).toBe(5);
+    expect(falhas).toBe(tentativas - 5);
+    expect(rachaService.contarJogadores(racha.id)).toBe(5);
   });
 
-  test('marca atingiuLimite=true exatamente no 18º jogador', () => {
-    const racha = novoRacha();
+  test('marca atingiuLimite=true exatamente no último slot', () => {
+    const racha = novoRacha({ max_jogadores: 3 });
     let ultimo;
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 3; i++) {
       ultimo = rachaService.adicionarJogador(racha.id, `Jogador ${i}`);
     }
     expect(ultimo.atingiuLimite).toBe(true);

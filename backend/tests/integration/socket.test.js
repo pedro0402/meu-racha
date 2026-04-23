@@ -94,9 +94,9 @@ describe('Socket.IO', () => {
 
   test('emite racha:fechado para a sala quando atinge limite', async () => {
     const racha = rachaService.criarRacha({
-      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: '2020-01-01T00:00',
+      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: '2020-01-01T00:00', max_jogadores: 3,
     });
-    for (let i = 0; i < 17; i++) {
+    for (let i = 0; i < 2; i++) {
       rachaService.adicionarJogador(racha.id, `J${i}`);
     }
 
@@ -113,7 +113,7 @@ describe('Socket.IO', () => {
 
     const payload = await promiseFechado;
     expect(payload.rachaId).toBe(racha.id);
-    expect(payload.total).toBe(18);
+    expect(payload.total).toBe(3);
 
     observador.disconnect();
   });

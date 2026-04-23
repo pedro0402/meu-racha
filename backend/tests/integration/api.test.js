@@ -60,6 +60,7 @@ function corpoCriacao(extra = {}) {
     nome_dono: 'Pedro',
     email: 'pedro@x.com',
     telefone: '11999999999',
+    max_jogadores: 18,
     ...extra,
   };
 }
@@ -71,6 +72,17 @@ describe('POST /api/rachas', () => {
     expect(res.status).toBe(201);
     expect(res.body.racha.id).toMatch(/^[a-z2-9]{10}$/);
     expect(res.body.shareUrl).toContain(`/racha/${res.body.racha.id}`);
+  });
+
+  test('responde com CORS para origens locais de desenvolvimento', async () => {
+    const origin = 'http://localhost:5173';
+    const res = await request(app)
+      .post('/api/rachas')
+      .set('Origin', origin)
+      .send(corpoCriacao());
+
+    expect(res.status).toBe(201);
+    expect(res.headers['access-control-allow-origin']).toBe(origin);
   });
 
   test('400 quando faltam campos', async () => {
@@ -102,6 +114,22 @@ describe('POST /api/rachas', () => {
     expect(res.status).toBe(201);
     expect(res.body.racha.data_abertura).toBe('2026-04-19T12:00');
   });
+
+  test('aceita max_jogadores customizado', async () => {
+    const res = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ max_jogadores: 10 }));
+    expect(res.status).toBe(201);
+    expect(res.body.racha.max_jogadores).toBe(10);
+  });
+
+  test('400 quando max_jogadores é inválido', async () => {
+    const res = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ max_jogadores: 1 }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('MAX_JOGADORES_INVALIDO');
+  });
 });
 
 describe('GET /api/rachas/:id', () => {
@@ -118,6 +146,16 @@ describe('GET /api/rachas/:id', () => {
     expect(res.body.racha.telefone).toBeUndefined();
     expect(res.body.maxJogadores).toBe(18);
     expect(res.body.timezone).toBe('America/Sao_Paulo');
+  });
+
+  test('retorna maxJogadores com valor customizado do racha', async () => {
+    const criado = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ max_jogadores: 7 }));
+
+    const res = await request(app).get(`/api/rachas/${criado.body.racha.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.maxJogadores).toBe(7);
   });
 });
 
@@ -157,8 +195,8 @@ describe('POST /api/rachas/:id/jogadores', () => {
   });
 
   test('409 quando lista está cheia', async () => {
-    const id = await criarRacha();
-    for (let i = 0; i < 18; i++) {
+    const id = await criarRacha({ max_jogadores: 3 });
+    for (let i = 0; i < 3; i++) {
       await request(app)
         .post(`/api/rachas/${id}/jogadores`)
         .send({ nome: `J${i}` });
@@ -188,9 +226,9 @@ describe('POST /api/rachas/:id/jogadores', () => {
     expect(res.status).toBe(403);
   });
 
-  test('ao atingir 18, dispara geração de PDF e envio de e-mail UMA ÚNICA VEZ', async () => {
-    const id = await criarRacha();
-    for (let i = 0; i < 18; i++) {
+  test('ao atingir o limite configurado, dispara geração de PDF e e-mail UMA ÚNICA VEZ', async () => {
+    const id = await criarRacha({ max_jogadores: 4 });
+    for (let i = 0; i < 4; i++) {
       await request(app)
         .post(`/api/rachas/${id}/jogadores`)
         .send({ nome: `J${i}` });

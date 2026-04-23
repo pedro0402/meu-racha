@@ -10,6 +10,7 @@ async function criarRacha(request) {
       email: 'rt@example.com',
       telefone: '11999999999',
       data_abertura: '2020-01-01T00:00',
+      max_jogadores: 10,
     },
   });
   return res.json();
@@ -17,6 +18,7 @@ async function criarRacha(request) {
 
 test('clientes recebem atualizações em tempo real', async ({ browser, request }) => {
   const { racha } = await criarRacha(request);
+  const max = racha.max_jogadores;
 
   // Dois "usuários" em contextos isolados (cookies/storage separados).
   const ctxA = await browser.newContext();
@@ -27,8 +29,8 @@ test('clientes recebem atualizações em tempo real', async ({ browser, request 
   await pageA.goto(`/racha/${racha.id}`);
   await pageB.goto(`/racha/${racha.id}`);
 
-  await expect(pageA.getByText(/0 de 18 jogadores/)).toBeVisible();
-  await expect(pageB.getByText(/0 de 18 jogadores/)).toBeVisible();
+  await expect(pageA.getByText(new RegExp(`0 de ${max} jogadores`))).toBeVisible();
+  await expect(pageB.getByText(new RegExp(`0 de ${max} jogadores`))).toBeVisible();
 
   // A entra na lista
   await pageA.getByPlaceholder(/digite seu nome/i).fill('Alice');
@@ -36,7 +38,7 @@ test('clientes recebem atualizações em tempo real', async ({ browser, request 
 
   // B vê automaticamente sem reload
   await expect(pageB.getByText('Alice')).toBeVisible();
-  await expect(pageB.getByText(/1 de 18 jogadores/)).toBeVisible();
+  await expect(pageB.getByText(new RegExp(`1 de ${max} jogadores`))).toBeVisible();
 
   // B entra na lista
   await pageB.getByPlaceholder(/digite seu nome/i).fill('Bob');
@@ -44,7 +46,7 @@ test('clientes recebem atualizações em tempo real', async ({ browser, request 
 
   // A vê
   await expect(pageA.getByText('Bob')).toBeVisible();
-  await expect(pageA.getByText(/2 de 18 jogadores/)).toBeVisible();
+  await expect(pageA.getByText(new RegExp(`2 de ${max} jogadores`))).toBeVisible();
 
   await ctxA.close();
   await ctxB.close();

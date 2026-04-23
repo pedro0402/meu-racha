@@ -15,7 +15,7 @@ function buildRouter(io) {
 
   // -------- Criar racha --------
   router.post('/', (req, res) => {
-    const { nome_dono, email, telefone, data_abertura } = req.body || {};
+    const { nome_dono, email, telefone, data_abertura, max_jogadores } = req.body || {};
     if (!nome_dono || !email || !telefone) {
       return res.status(400).json({
         error: 'CAMPOS_OBRIGATORIOS',
@@ -26,6 +26,18 @@ function buildRouter(io) {
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!emailOk) {
       return res.status(400).json({ error: 'EMAIL_INVALIDO' });
+    }
+
+    let maxJogadoresNorm = config.maxJogadores;
+    if (max_jogadores !== undefined && max_jogadores !== null && max_jogadores !== '') {
+      const parsed = Number(max_jogadores);
+      if (!Number.isInteger(parsed) || parsed < 2 || parsed > 50) {
+        return res.status(400).json({
+          error: 'MAX_JOGADORES_INVALIDO',
+          message: 'max_jogadores deve ser um inteiro entre 2 e 50.',
+        });
+      }
+      maxJogadoresNorm = parsed;
     }
 
     let dataAberturaNorm = null;
@@ -44,6 +56,7 @@ function buildRouter(io) {
       email: email.trim(),
       telefone: telefone.trim(),
       data_abertura: dataAberturaNorm,
+      max_jogadores: maxJogadoresNorm,
     });
 
     return res.status(201).json({
@@ -61,7 +74,7 @@ function buildRouter(io) {
     return res.json({
       racha: { ...racha, email: undefined, telefone: undefined },
       jogadores,
-      maxJogadores: config.maxJogadores,
+      maxJogadores: racha.max_jogadores,
       listaAberta: isListaAbertaParaRacha(racha),
       timezone: config.timezone,
       agora: nowAsLocalString(),

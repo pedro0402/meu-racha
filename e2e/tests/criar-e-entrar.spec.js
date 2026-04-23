@@ -39,16 +39,16 @@ test.describe('Criar racha e entrar na lista', () => {
   });
 
   test('fluxo do jogador: entrar na lista pela UI', async ({ page, request }) => {
-    const { racha } = await criarRachaViaApi(request);
+    const { racha } = await criarRachaViaApi(request, { max_jogadores: 12 });
 
     await page.goto(`/racha/${racha.id}`);
-    await expect(page.getByText(/0 de 18 jogadores/)).toBeVisible();
+    await expect(page.getByText(/0 de 12 jogadores/)).toBeVisible();
 
     await page.getByPlaceholder(/digite seu nome/i).fill('Carlos');
     await page.getByRole('button', { name: /entrar no racha/i }).click();
 
     await expect(page.getByText('Carlos')).toBeVisible();
-    await expect(page.getByText(/1 de 18 jogadores/)).toBeVisible();
+    await expect(page.getByText(/1 de 12 jogadores/)).toBeVisible();
   });
 
   test('rejeita nome duplicado', async ({ page, request }) => {

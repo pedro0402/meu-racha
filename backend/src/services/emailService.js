@@ -58,7 +58,7 @@ async function enviarPdfRacha({ destinatario, racha, pdfPath }) {
     subject: `Lista do racha "${racha.nome_dono}" fechada!`,
     text:
       `Olá ${racha.nome_dono},\n\n` +
-      `A lista do seu racha foi fechada com ${config.maxJogadores} jogadores.\n` +
+      `A lista do seu racha foi fechada com ${racha.max_jogadores} jogadores.\n` +
       `O PDF com a lista final está em anexo.\n\n` +
       `Bom jogo!`,
     attachments: [

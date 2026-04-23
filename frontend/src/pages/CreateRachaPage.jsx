@@ -21,6 +21,7 @@ export default function CreateRachaPage() {
     nome_dono: '',
     email: '',
     telefone: '',
+    max_jogadores: 18,
     data: defaultProximoDomingo(),
     hora: '12:00',
   });
@@ -40,6 +41,7 @@ export default function CreateRachaPage() {
         nome_dono: form.nome_dono,
         email: form.email,
         telefone: form.telefone,
+        max_jogadores: Number(form.max_jogadores),
         data_abertura: `${form.data}T${form.hora}`,
       });
       setCriado(data);
@@ -112,6 +114,18 @@ export default function CreateRachaPage() {
           value={form.telefone}
           onChange={update('telefone')}
           placeholder="(11) 99999-9999"
+          required
+        />
+      </label>
+
+      <label>
+        Máximo de jogadores
+        <input
+          type="number"
+          min="2"
+          max="50"
+          value={form.max_jogadores}
+          onChange={update('max_jogadores')}
           required
         />
       </label>

@@ -1,7 +1,7 @@
 // @ts-check
 const { defineConfig, devices } = require('@playwright/test');
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:4173';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 
 /**
@@ -41,7 +41,7 @@ module.exports = defineConfig({
       },
     },
     {
-      command: 'npm run dev -- --host 127.0.0.1 --port 5173',
+      command: 'npm run dev -- --host 127.0.0.1 --port 4173',
       cwd: '../frontend',
       url: FRONTEND_URL,
       reuseExistingServer: !process.env.CI,

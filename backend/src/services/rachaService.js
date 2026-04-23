@@ -12,8 +12,8 @@ const genId = customAlphabet('abcdefghijkmnopqrstuvwxyz23456789', 10);
 // ----------- Statements pré-compilados (mais performático) -----------
 
 const stmtInsertRacha = db.prepare(`
-  INSERT INTO rachas (id, nome_dono, email, telefone, data_abertura)
-  VALUES (?, ?, ?, ?, ?)
+  INSERT INTO rachas (id, nome_dono, email, telefone, data_abertura, max_jogadores)
+  VALUES (?, ?, ?, ?, ?, ?)
 `);
 
 const stmtGetRacha = db.prepare(`SELECT * FROM rachas WHERE id = ?`);
@@ -41,9 +41,15 @@ const stmtMarcarPdfGerado = db.prepare(`
 
 // ----------- Funções públicas -----------
 
-function criarRacha({ nome_dono, email, telefone, data_abertura = null }) {
+function criarRacha({
+  nome_dono,
+  email,
+  telefone,
+  data_abertura = null,
+  max_jogadores = config.maxJogadores,
+}) {
   const id = genId();
-  stmtInsertRacha.run(id, nome_dono, email, telefone, data_abertura);
+  stmtInsertRacha.run(id, nome_dono, email, telefone, data_abertura, max_jogadores);
   return getRacha(id);
 }
 
@@ -79,8 +85,9 @@ const addJogadorTx = db.transaction((rachaId, nomeOriginal) => {
   }
 
   const total = stmtCountJogadores.get(rachaId).total;
-  if (total >= config.maxJogadores) {
-    const err = new Error(`Lista cheia (limite ${config.maxJogadores})`);
+  const limite = racha.max_jogadores;
+  if (total >= limite) {
+    const err = new Error(`Lista cheia (limite ${limite})`);
     err.code = 'FULL';
     throw err;
   }
@@ -109,7 +116,7 @@ const addJogadorTx = db.transaction((rachaId, nomeOriginal) => {
   return {
     jogador: jogadores[jogadores.length - 1],
     jogadores,
-    atingiuLimite: jogadores.length >= config.maxJogadores,
+    atingiuLimite: jogadores.length >= limite,
   };
 });
 
