@@ -15,6 +15,52 @@ function defaultProximoDomingo() {
   return `${proximo.getFullYear()}-${pad(proximo.getMonth() + 1)}-${pad(proximo.getDate())}`;
 }
 
+function formatDateBr(isoDate) {
+  if (!isoDate) return '';
+  const [year, month, day] = isoDate.split('-');
+  if (!year || !month || !day) return isoDate;
+  return `${day}/${month}/${year}`;
+}
+
+function maskData(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function parseDateBr(value) {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 8) return '';
+
+  const day = digits.slice(0, 2);
+  const month = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+  return `${year}-${month}-${day}`;
+}
+
+function maskTelefone(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (!digits) return '';
+
+  const ddd = digits.slice(0, 2);
+  const parte1 = digits.slice(2, digits.length > 10 ? 7 : 6);
+  const parte2 = digits.slice(digits.length > 10 ? 7 : 6);
+
+  if (digits.length <= 2) return `(${ddd}`;
+  if (digits.length <= 6) return `(${ddd}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${ddd}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${ddd}) ${parte1}-${parte2}`;
+}
+
+function normalizeEmail(value) {
+  return value.toLowerCase().replace(/\s+/g, '');
+}
+
+function onlyDigits(value) {
+  return value.replace(/\D/g, '');
+}
+
 export default function CreateRachaPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -22,15 +68,32 @@ export default function CreateRachaPage() {
     email: '',
     telefone: '',
     max_jogadores: 18,
-    data: defaultProximoDomingo(),
+    data: formatDateBr(defaultProximoDomingo()),
     hora: '12:00',
   });
   const [criado, setCriado] = useState(null);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
 
-  const update = (campo) => (e) =>
-    setForm((f) => ({ ...f, [campo]: e.target.value }));
+  const update = (campo) => (e) => {
+    const { value } = e.target;
+
+    setForm((f) => {
+      if (campo === 'telefone') {
+        return { ...f, telefone: maskTelefone(value) };
+      }
+
+      if (campo === 'email') {
+        return { ...f, email: normalizeEmail(value) };
+      }
+
+      if (campo === 'data') {
+        return { ...f, data: maskData(value) };
+      }
+
+      return { ...f, [campo]: value };
+    });
+  };
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -39,10 +102,10 @@ export default function CreateRachaPage() {
     try {
       const data = await api.criarRacha({
         nome_dono: form.nome_dono,
-        email: form.email,
-        telefone: form.telefone,
+        email: normalizeEmail(form.email),
+        telefone: onlyDigits(form.telefone),
         max_jogadores: Number(form.max_jogadores),
-        data_abertura: `${form.data}T${form.hora}`,
+        data_abertura: `${parseDateBr(form.data)}T${form.hora}`,
       });
       setCriado(data);
     } catch (err) {
@@ -102,6 +165,9 @@ export default function CreateRachaPage() {
           type="email"
           value={form.email}
           onChange={update('email')}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck="false"
           placeholder="voce@email.com"
           required
         />
@@ -111,6 +177,7 @@ export default function CreateRachaPage() {
         Telefone
         <input
           type="tel"
+          inputMode="tel"
           value={form.telefone}
           onChange={update('telefone')}
           placeholder="(11) 99999-9999"
@@ -137,9 +204,11 @@ export default function CreateRachaPage() {
           <label className="flex-1">
             Data
             <input
-              type="date"
+              type="text"
+              inputMode="numeric"
               value={form.data}
               onChange={update('data')}
+              placeholder="DD/MM/AAAA"
               required
             />
           </label>
