@@ -79,6 +79,12 @@ function buildRouter(io) {
           message: 'Use o formato YYYY-MM-DDTHH:mm.',
         });
       }
+      if (data_abertura < nowAsLocalString()) {
+        return res.status(400).json({
+          error: 'DATA_ABERTURA_PASSADA',
+          message: 'Escolha hoje ou uma data futura para abrir a lista.',
+        });
+      }
       dataAberturaNorm = data_abertura;
     }
 

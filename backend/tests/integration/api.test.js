@@ -150,12 +150,29 @@ describe('POST /api/rachas', () => {
     expect(res.body.error).toBe('DATA_ABERTURA_INVALIDA');
   });
 
+  test('400 quando data_abertura está no passado', async () => {
+    const res = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ data_abertura: '2026-04-18T12:00' }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('DATA_ABERTURA_PASSADA');
+    expect(res.body.message).toBe('Escolha hoje ou uma data futura para abrir a lista.');
+  });
+
   test('aceita data_abertura válida', async () => {
     const res = await request(app)
       .post('/api/rachas')
       .send(corpoCriacao({ data_abertura: '2026-04-19T12:00' }));
     expect(res.status).toBe(201);
     expect(res.body.racha.data_abertura).toBe('2026-04-19T12:00');
+  });
+
+  test('aceita data_abertura futura', async () => {
+    const res = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ data_abertura: '2026-04-20T12:00' }));
+    expect(res.status).toBe(201);
+    expect(res.body.racha.data_abertura).toBe('2026-04-20T12:00');
   });
 
   test('aceita max_jogadores customizado', async () => {
