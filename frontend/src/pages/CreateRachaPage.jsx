@@ -53,7 +53,7 @@ export default function CreateRachaPage() {
   if (criado) {
     return (
       <div className="card">
-        <h2>Racha criado! 🎉</h2>
+        <h2>Racha criado!</h2>
         <p>Compartilhe o link abaixo com a galera:</p>
         <div className="share-box">
           <input readOnly value={criado.shareUrl} onFocus={(e) => e.target.select()} />
