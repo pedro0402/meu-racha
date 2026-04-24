@@ -7,6 +7,7 @@ const config = require('./config');
 const rachasRouter = require('./routes/rachas');
 const { attachSocket } = require('./sockets');
 const { isListaAbertaPadrao } = require('./utils/time');
+const postgres = require('./db/postgres');
 
 function isAllowedLocalOrigin(origin, frontendUrl) {
   if (!origin) return true;
@@ -50,6 +51,7 @@ function createApp() {
   app.get('/health', (_req, res) => {
     res.json({
       ok: true,
+      databaseMode: postgres.isPostgresEnabled() ? 'postgres' : 'sqlite',
       listaAbertaPadrao: isListaAbertaPadrao(),
       timezone: config.timezone,
     });

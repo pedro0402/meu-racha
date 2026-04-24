@@ -10,6 +10,10 @@ npm run dev   # nodemon (recarrega ao editar)
 npm start     # produção
 ```
 
+Quando `DATABASE_URL` está configurada, o `npm start` faz bootstrap do Postgres
+(aplica `src/db/sql/init_postgres.sql` de forma idempotente e valida conexão)
+antes de abrir a porta HTTP.
+
 ## Variáveis de ambiente (.env)
 
 Veja `.env.example`. As principais:
