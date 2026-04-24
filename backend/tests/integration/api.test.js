@@ -9,6 +9,7 @@ jest.mock('../../src/services/emailService', () => ({
 
 const request = require('supertest');
 const { createApp } = require('../../src/app');
+const config = require('../../src/config');
 const db = require('../../src/db/database');
 const rachaService = require('../../src/services/rachaService');
 const { gerarPdfRacha } = require('../../src/services/pdfService');
@@ -84,6 +85,24 @@ describe('POST /api/rachas', () => {
 
     expect(res.status).toBe(201);
     expect(res.headers['access-control-allow-origin']).toBe(origin);
+  });
+
+  test('responde com CORS para múltiplas origens configuradas', async () => {
+    const original = config.frontendUrl;
+    config.frontendUrl = 'https://meuracha.vercel.app, https://meuracha-git-preview.vercel.app';
+
+    try {
+      const origin = 'https://meuracha-git-preview.vercel.app';
+      const res = await request(app)
+        .post('/api/rachas')
+        .set('Origin', origin)
+        .send(corpoCriacao());
+
+      expect(res.status).toBe(201);
+      expect(res.headers['access-control-allow-origin']).toBe(origin);
+    } finally {
+      config.frontendUrl = original;
+    }
   });
 
   test('400 quando faltam campos', async () => {

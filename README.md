@@ -89,6 +89,12 @@ Quando 18 jogadores entrarem na lista, o backend:
 
 Veja também os READMEs específicos em `backend/` e `frontend/`.
 
+## ☁️ Deploy
+
+Guia completo de hospedagem gratuita (Vercel + Render):
+
+- [`DEPLOY.md`](./DEPLOY.md)
+
 ## 🧪 Testes
 
 A aplicação tem suíte completa em três camadas (unitários, integração e E2E).

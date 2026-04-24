@@ -9,6 +9,13 @@ const { attachSocket } = require('./sockets');
 const { isListaAbertaPadrao } = require('./utils/time');
 const postgres = require('./db/postgres');
 
+function parseAllowedOrigins(frontendUrl) {
+  return String(frontendUrl || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function isAllowedLocalOrigin(origin, frontendUrl) {
   if (!origin) return true;
 
@@ -20,7 +27,8 @@ function isAllowedLocalOrigin(origin, frontendUrl) {
     // Continua tentando a origem configurada abaixo.
   }
 
-  return origin === frontendUrl;
+  const allowedOrigins = parseAllowedOrigins(frontendUrl);
+  return allowedOrigins.includes(origin);
 }
 
 /**

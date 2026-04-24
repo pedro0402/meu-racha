@@ -21,7 +21,7 @@ Veja `.env.example`. As principais:
 | Variável        | Descrição                                                 |
 | --------------- | --------------------------------------------------------- |
 | `PORT`          | Porta HTTP (default 3001)                                 |
-| `FRONTEND_URL`  | Origem permitida no CORS e usada para gerar `shareUrl`    |
+| `FRONTEND_URL`  | Origem(ns) permitida(s) no CORS e usada(s) para `shareUrl` |
 | `DATABASE_URL`  | Connection string Postgres (Supabase). Vazio = SQLite local |
 | `DATABASE_SSL`  | SSL do Postgres (`require` em nuvem; vazio em dev local)  |
 | `MAX_JOGADORES` | Limite de jogadores por racha (default 18)                |
@@ -29,6 +29,11 @@ Veja `.env.example`. As principais:
 | `HORA_MINIMA`   | Hora mínima para abrir a lista (formato 24h)              |
 | `TIMEZONE`      | Fuso considerado autoritativo                             |
 | `SMTP_*`        | Configuração SMTP. Vazio em dev → usa Ethereal (preview)  |
+
+`FRONTEND_URL` aceita uma ou mais origens separadas por vírgula.
+Exemplo em produção:
+
+`FRONTEND_URL=https://meuracha.vercel.app,https://meuracha-git-preview.vercel.app`
 
 Schema SQL inicial para Supabase/Postgres: `src/db/sql/init_postgres.sql`.
 Helper de conexão para a próxima etapa da migração: `src/db/postgres.js`.
