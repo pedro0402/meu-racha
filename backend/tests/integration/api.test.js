@@ -105,6 +105,24 @@ describe('POST /api/rachas', () => {
     }
   });
 
+  test('normaliza barra final em FRONTEND_URL ao validar CORS', async () => {
+    const original = config.frontendUrl;
+    config.frontendUrl = 'https://meuracha.vercel.app/';
+
+    try {
+      const origin = 'https://meuracha.vercel.app';
+      const res = await request(app)
+        .post('/api/rachas')
+        .set('Origin', origin)
+        .send(corpoCriacao());
+
+      expect(res.status).toBe(201);
+      expect(res.headers['access-control-allow-origin']).toBe(origin);
+    } finally {
+      config.frontendUrl = original;
+    }
+  });
+
   test('400 quando faltam campos', async () => {
     const res = await request(app).post('/api/rachas').send({ nome_dono: 'só' });
     expect(res.status).toBe(400);

@@ -13,6 +13,13 @@ function parseAllowedOrigins(frontendUrl) {
   return String(frontendUrl || '')
     .split(',')
     .map((item) => item.trim())
+    .map((item) => {
+      try {
+        return new URL(item).origin;
+      } catch (_err) {
+        return item.replace(/\/$/, '');
+      }
+    })
     .filter(Boolean);
 }
 

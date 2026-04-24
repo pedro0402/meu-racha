@@ -17,6 +17,10 @@ const LIMITES_CRIACAO = {
   telefone: 20,
 };
 
+function getShareBaseUrl() {
+  return config.frontendUrl || 'http://localhost:5173';
+}
+
 function campoExcedeLimite(valor, limite) {
   return typeof valor === 'string' && valor.trim().length > limite;
 }
@@ -100,7 +104,7 @@ function buildRouter(io) {
 
       return res.status(201).json({
         racha,
-        shareUrl: `${config.frontendUrl}/racha/${racha.id}`,
+        shareUrl: `${getShareBaseUrl()}/racha/${racha.id}`,
       });
     } catch (err) {
       console.error('[POST /api/rachas] erro:', err);

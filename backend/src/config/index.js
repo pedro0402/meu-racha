@@ -1,8 +1,30 @@
 require('dotenv').config();
 
+function normalizeOrigin(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+
+  try {
+    return new URL(trimmed).origin;
+  } catch (_err) {
+    return trimmed.replace(/\/$/, '');
+  }
+}
+
+function parseOriginList(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => normalizeOrigin(item))
+    .filter(Boolean);
+}
+
+const frontendOrigins = parseOriginList(process.env.FRONTEND_URL || 'http://localhost:5173');
+const frontendUrl = frontendOrigins[0] || 'http://localhost:5173';
+
 const config = {
   port: parseInt(process.env.PORT || '3001', 10),
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  frontendUrl,
+  frontendOrigins,
   database: {
     url: process.env.DATABASE_URL || '',
     ssl: process.env.DATABASE_SSL || '',
