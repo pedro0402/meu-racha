@@ -8,9 +8,27 @@ export default function RachaPage() {
   const { id } = useParams();
   const [estado, { refresh }] = useRacha(id);
 
-  if (estado.loading) return <div className="card">Carregando...</div>;
+  if (estado.loading) {
+    return (
+      <div className="card loading-card" aria-busy="true" aria-live="polite">
+        <h2>Carregando lista...</h2>
+        <div className="skeleton-line" />
+        <div className="skeleton-line short" />
+        <div className="skeleton-line" />
+      </div>
+    );
+  }
+
   if (estado.error)
-    return <div className="card alert alert-error">{estado.error}</div>;
+    return (
+      <div className="card alert alert-error" role="alert">
+        <h2>Não foi possível carregar este racha</h2>
+        <p>{estado.error}</p>
+        <button type="button" className="btn" onClick={refresh}>
+          Tentar novamente
+        </button>
+      </div>
+    );
 
   if (estado.expirado) {
     return (
