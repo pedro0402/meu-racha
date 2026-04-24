@@ -120,6 +120,18 @@ O projeto está pronto para subir com:
 
 O passo a passo está em [`DEPLOY.md`](./DEPLOY.md).
 
+## Observabilidade
+
+O frontend já está integrado com **Vercel Analytics** para acompanhar page views e navegação depois do deploy.
+
+Depois de publicar, basta visitar o site em produção e navegar entre as páginas para os dados começarem a aparecer no painel da Vercel.
+
+Se os dados não surgirem em alguns segundos:
+
+- Verifique bloqueadores de conteúdo.
+- Navegue entre páginas do site.
+- Confirme que o deploy publicado é o mesmo que recebeu a integração.
+
 ## Testes
 
 A suíte está dividida em três camadas:
@@ -158,6 +170,26 @@ cd e2e && npm test
 - Fechamento automático ao atingir o limite.
 - Banco em produção com Supabase/Postgres.
 - Publicação pronta com Vercel e Render.
+
+## FAQ técnico
+
+### O que acontece se 18 pessoas entrarem ao mesmo tempo?
+
+O sistema não deve cair. O backend usa transação por racha e trava a linha do racha durante a entrada. Isso faz as requisições serem processadas de forma serializada para aquele racha.
+
+Na prática:
+
+- as 18 primeiras entradas válidas passam;
+- a 19ª recebe resposta de lista cheia;
+- o limite final permanece consistente mesmo sob concorrência.
+
+### Existe risco de duplicar jogador ou ultrapassar o limite?
+
+Não no fluxo normal. Há proteção de duplicidade por nome normalizado e verificação atômica do limite antes do insert.
+
+### O analytics já está ligado?
+
+Sim. O componente foi adicionado no frontend e passa a coletar page views após o deploy publicado.
 
 ## Próximos passos naturais
 

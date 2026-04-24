@@ -84,6 +84,7 @@ Aplique para Production (e Preview, se quiser validar PRs).
 2. Copie a URL final da Vercel.
 3. Garanta que o fallback de SPA esteja ativo com [`frontend/vercel.json`](./frontend/vercel.json).
    Isso evita 404 ao abrir ou recarregar rotas como `/racha/:id` fora do app.
+4. Depois de publicar, visite o site em produção e navegue entre as páginas para o Vercel Analytics começar a registrar page views.
 
 ## 4. Fechar loop CORS
 
@@ -124,6 +125,13 @@ Aplique para Production (e Preview, se quiser validar PRs).
 
 - Render free hiberna por inatividade.
 - Primeiro request apos idle pode demorar.
+
+### Analytics sem dados após o deploy
+
+- Visite a aplicação publicada em produção.
+- Navegue entre algumas páginas.
+- Aguarde cerca de 30 segundos.
+- Se ainda não aparecer, revise bloqueadores de conteúdo no navegador.
 
 ### /health com `databaseMode: sqlite`
 
