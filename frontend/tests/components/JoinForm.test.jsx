@@ -33,14 +33,16 @@ describe('<JoinForm />', () => {
   });
 
   test('exibe a mensagem de erro retornada pela API', async () => {
-    api.entrarNoRacha.mockRejectedValue(new Error('Esse nome já está na lista'));
+    const err = new Error('Esse nome já está na lista');
+    err.code = 'DUPLICATE';
+    api.entrarNoRacha.mockRejectedValue(err);
     const user = userEvent.setup();
 
     render(<JoinForm rachaId="abc123" />);
     await user.type(screen.getByPlaceholderText(/digite seu nome/i), 'Pedro');
     await user.click(screen.getByRole('button', { name: /entrar no racha/i }));
 
-    expect(await screen.findByText(/Esse nome já está na lista/)).toBeInTheDocument();
+    expect(await screen.findByText(/esse nome ja esta na lista/i)).toBeInTheDocument();
   });
 
   test('não envia se o nome estiver vazio', async () => {

@@ -1,6 +1,21 @@
 import { useState } from 'react';
 import { api } from '../services/api';
 
+function mapJoinError(err) {
+  const byCode = {
+    NOME_OBRIGATORIO: 'Digite seu nome para entrar na lista.',
+    INVALID_NAME: 'Use pelo menos 2 caracteres no nome.',
+    DUPLICATE: 'Esse nome ja esta na lista.',
+    FULL: 'A lista ja atingiu o limite de jogadores.',
+    LISTA_FECHADA: 'A lista ainda nao esta aberta para entradas.',
+    LISTA_EXPIRADA: 'Esta lista expirou e nao aceita novas entradas.',
+    RACHA_NAO_ENCONTRADO: 'Nao encontramos esse racha. Confira o link.',
+  };
+
+  if (err?.code && byCode[err.code]) return byCode[err.code];
+  return err?.message || 'Nao foi possivel entrar na lista agora.';
+}
+
 export default function JoinForm({ rachaId }) {
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
@@ -19,7 +34,7 @@ export default function JoinForm({ rachaId }) {
       setNome('');
       setSucesso('Entrada confirmada. Boa sorte no racha!');
     } catch (err) {
-      setErro(err.message);
+      setErro(mapJoinError(err));
     } finally {
       setLoading(false);
     }

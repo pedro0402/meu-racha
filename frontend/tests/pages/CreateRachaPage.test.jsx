@@ -185,4 +185,37 @@ describe('<CreateRachaPage />', () => {
 
     expect(screen.getByText(/a lista será aberta em/i)).toBeInTheDocument();
   });
+
+  test('mostra erro amigável quando API retorna DATA_ABERTURA_PASSADA', async () => {
+    const err = new Error('DATA_ABERTURA_PASSADA');
+    err.code = 'DATA_ABERTURA_PASSADA';
+    api.criarRacha.mockRejectedValue(err);
+
+    const user = userEvent.setup();
+    render(<CreateRachaPage />);
+
+    await user.type(screen.getByLabelText(/seu nome/i), 'João');
+    await user.type(screen.getByLabelText(/^e-mail/i), 'joao@example.com');
+    await user.type(screen.getByLabelText(/telefone/i), '11988887777');
+    await user.type(screen.getByLabelText(/data/i), '01/01/2024');
+    await user.type(screen.getByLabelText(/hora/i), '12:00');
+    await user.click(screen.getByRole('button', { name: /criar racha/i }));
+
+    expect(await screen.findByText(/a abertura precisa ser hoje ou em uma data futura/i)).toBeInTheDocument();
+  });
+
+  test('bloqueia submit quando data/hora não estão válidas', async () => {
+    const user = userEvent.setup();
+    render(<CreateRachaPage />);
+
+    await user.type(screen.getByLabelText(/seu nome/i), 'João');
+    await user.type(screen.getByLabelText(/^e-mail/i), 'joao@example.com');
+    await user.type(screen.getByLabelText(/telefone/i), '11988887777');
+    await user.type(screen.getByLabelText(/data/i), '31/12');
+    await user.type(screen.getByLabelText(/hora/i), '12:00');
+    await user.click(screen.getByRole('button', { name: /criar racha/i }));
+
+    expect(screen.getByText(/preencha data e hora de abertura no formato correto/i)).toBeInTheDocument();
+    expect(api.criarRacha).not.toHaveBeenCalled();
+  });
 });

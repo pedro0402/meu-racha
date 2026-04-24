@@ -41,6 +41,20 @@ function onlyDigits(value) {
   return value.replace(/\D/g, '');
 }
 
+function mapCreateError(err) {
+  const byCode = {
+    CAMPOS_OBRIGATORIOS: 'Preencha nome, e-mail e telefone para criar o racha.',
+    EMAIL_INVALIDO: 'Revise o e-mail informado para continuar.',
+    TELEFONE_INVALIDO: 'Informe um telefone valido com DDD.',
+    MAX_JOGADORES_INVALIDO: 'Escolha um limite entre 2 e 50 jogadores.',
+    DATA_ABERTURA_INVALIDA: 'Informe data e hora validas para abertura.',
+    DATA_ABERTURA_PASSADA: 'A abertura precisa ser hoje ou em uma data futura.',
+  };
+
+  if (err?.code && byCode[err.code]) return byCode[err.code];
+  return err?.message || 'Nao foi possivel criar o racha agora.';
+}
+
 function formatAberturaPreview(dataBr, hora) {
   const isoDate = parseDateBr(dataBr);
   if (!isoDate || !hora) return '';
@@ -95,6 +109,12 @@ export default function CreateRachaPage() {
   async function onSubmit(e) {
     e.preventDefault();
     setErro('');
+    const dataISO = parseDateBr(form.data);
+    if (!dataISO || !form.hora) {
+      setErro('Preencha data e hora de abertura no formato correto.');
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await api.criarRacha({
@@ -102,11 +122,11 @@ export default function CreateRachaPage() {
         email: normalizeEmail(form.email),
         telefone: onlyDigits(form.telefone),
         max_jogadores: Number(form.max_jogadores),
-        data_abertura: `${parseDateBr(form.data)}T${form.hora}`,
+        data_abertura: `${dataISO}T${form.hora}`,
       });
       setCriado(data);
     } catch (err) {
-      setErro(err.message);
+      setErro(mapCreateError(err));
     } finally {
       setLoading(false);
     }
