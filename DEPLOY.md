@@ -82,6 +82,8 @@ Aplique para Production (e Preview, se quiser validar PRs).
 
 1. Execute o deploy.
 2. Copie a URL final da Vercel.
+3. Garanta que o fallback de SPA esteja ativo com [`frontend/vercel.json`](./frontend/vercel.json).
+   Isso evita 404 ao abrir ou recarregar rotas como `/racha/:id` fora do app.
 
 ## 4. Fechar loop CORS
 
@@ -107,6 +109,11 @@ Aplique para Production (e Preview, se quiser validar PRs).
 
 - Causa: `FRONTEND_URL` incorreta no backend.
 - Correcao: ajuste a variavel no Render e redeploy.
+
+### 404 ao abrir `/racha/:id` diretamente
+
+- Causa: o frontend precisa reescrever rotas para `index.html` no host.
+- Correcao: confirme o arquivo [`frontend/vercel.json`](./frontend/vercel.json) no projeto da Vercel.
 
 ### Socket sem atualizar em tempo real
 
