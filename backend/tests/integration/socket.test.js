@@ -144,4 +144,53 @@ describe('Socket.IO', () => {
 
     socket.disconnect();
   });
+
+  test('throttle por evento bloqueia rajada de racha:entrar', async () => {
+    const racha = await rachaService.criarRacha({
+      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(),
+    });
+
+    const socket = novoCliente();
+    await new Promise((r) => socket.on('connect', r));
+
+    let erroRateLimit = null;
+    socket.on('racha:erro', (payload) => {
+      if (/Muitas tentativas/i.test(payload?.message || '')) {
+        erroRateLimit = payload;
+      }
+    });
+
+    for (let i = 0; i < 25; i++) {
+      socket.emit('racha:entrar', { rachaId: racha.id });
+    }
+
+    await new Promise((r) => setTimeout(r, 150));
+    expect(erroRateLimit).toBeTruthy();
+
+    socket.disconnect();
+  });
+
+  test('limite por IP/sala bloqueia conexões excedentes', async () => {
+    const racha = await rachaService.criarRacha({
+      nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(),
+    });
+
+    const clientes = Array.from({ length: 6 }, () => novoCliente());
+    await Promise.all(clientes.map((socket) => new Promise((resolve) => socket.on('connect', resolve))));
+
+    const erros = [];
+    clientes.forEach((socket) => {
+      socket.on('racha:erro', (payload) => {
+        if (/Limite de conex[õo]es por IP/i.test(payload?.message || '')) {
+          erros.push(payload);
+        }
+      });
+      socket.emit('racha:entrar', { rachaId: racha.id });
+    });
+
+    await new Promise((r) => setTimeout(r, 250));
+    expect(erros.length).toBe(1);
+
+    clientes.forEach((socket) => socket.disconnect());
+  });
 });

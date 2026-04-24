@@ -1,6 +1,8 @@
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { Server } = require('socket.io');
 
 const config = require('./config');
@@ -29,7 +31,7 @@ function isAllowedLocalOrigin(origin, frontendUrl) {
   try {
     const parsed = new URL(origin);
     const isLocalHost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
-    if (isLocalHost) return true;
+    if (isLocalHost && process.env.NODE_ENV !== 'production') return true;
   } catch (_err) {
     // Continua tentando a origem configurada abaixo.
   }
@@ -46,6 +48,19 @@ function createApp() {
   const app = express();
   const server = http.createServer(app);
 
+  app.set('trust proxy', 1);
+
+  const apiRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: 'RATE_LIMIT',
+      message: 'Muitas requisições. Tente novamente em instantes.',
+    },
+  });
+
   const corsOptions = {
     origin(origin, callback) {
       if (isAllowedLocalOrigin(origin, config.frontendUrl)) {
@@ -60,8 +75,13 @@ function createApp() {
     cors: corsOptions,
   });
 
+  app.use(helmet());
   app.use(cors(corsOptions));
-  app.use(express.json());
+  app.use(express.json({ limit: '16kb' }));
+  const isJestRuntime = Boolean(process.env.JEST_WORKER_ID);
+  if (process.env.NODE_ENV !== 'test' && !isJestRuntime) {
+    app.use('/api', apiRateLimit);
+  }
 
   app.get('/health', (_req, res) => {
     res.json({
