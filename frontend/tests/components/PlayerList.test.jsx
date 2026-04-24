@@ -17,6 +17,7 @@ describe('<PlayerList />', () => {
     expect(screen.getByText('Pedro')).toBeInTheDocument();
     expect(screen.getByText('João')).toBeInTheDocument();
     expect(screen.getAllByText('vaga aberta')).toHaveLength(16);
+    expect(screen.getByText(/2 inscritos, 16 vagas restantes/i)).toBeInTheDocument();
   });
 
   test('numera os slots começando em 01', () => {

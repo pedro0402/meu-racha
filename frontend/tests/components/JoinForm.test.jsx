@@ -29,6 +29,7 @@ describe('<JoinForm />', () => {
       expect(api.entrarNoRacha).toHaveBeenCalledWith('abc123', 'Pedro');
     });
     expect(input).toHaveValue('');
+    expect(screen.getByRole('status')).toHaveTextContent(/entrada confirmada/i);
   });
 
   test('exibe a mensagem de erro retornada pela API', async () => {
@@ -45,7 +46,9 @@ describe('<JoinForm />', () => {
   test('não envia se o nome estiver vazio', async () => {
     const user = userEvent.setup();
     render(<JoinForm rachaId="abc123" />);
-    await user.click(screen.getByRole('button', { name: /entrar no racha/i }));
+    const botao = screen.getByRole('button', { name: /entrar no racha/i });
+    expect(botao).toBeDisabled();
+    await user.click(botao);
     expect(api.entrarNoRacha).not.toHaveBeenCalled();
   });
 });

@@ -4,16 +4,20 @@ import { api } from '../services/api';
 export default function JoinForm({ rachaId }) {
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
+  const [sucesso, setSucesso] = useState('');
   const [loading, setLoading] = useState(false);
+  const canSubmit = Boolean(nome.trim()) && !loading;
 
   async function onSubmit(e) {
     e.preventDefault();
     if (!nome.trim()) return;
     setErro('');
+    setSucesso('');
     setLoading(true);
     try {
       await api.entrarNoRacha(rachaId, nome);
       setNome('');
+      setSucesso('Entrada confirmada. Boa sorte no racha!');
     } catch (err) {
       setErro(err.message);
     } finally {
@@ -28,14 +32,18 @@ export default function JoinForm({ rachaId }) {
         <input
           type="text"
           value={nome}
-          onChange={(e) => setNome(e.target.value)}
+          onChange={(e) => {
+            setNome(e.target.value);
+            if (sucesso) setSucesso('');
+          }}
           placeholder="Digite seu nome"
           maxLength={60}
           required
         />
       </label>
       {erro && <div className="alert alert-error">{erro}</div>}
-      <button className="btn btn-primary" disabled={loading}>
+      {sucesso && <div className="alert alert-success" role="status">{sucesso}</div>}
+      <button className="btn btn-primary" disabled={!canSubmit}>
         {loading ? 'Entrando...' : 'Entrar no racha'}
       </button>
     </form>

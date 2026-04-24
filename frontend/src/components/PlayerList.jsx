@@ -1,9 +1,13 @@
 export default function PlayerList({ jogadores, max }) {
+  const total = jogadores.length;
   const slots = Array.from({ length: max }, (_, i) => jogadores[i] || null);
 
   return (
     <div className="card">
       <h3>Lista</h3>
+      <p className="muted list-summary">
+        {total} inscritos, {Math.max(max - total, 0)} vagas restantes.
+      </p>
       <ol className="player-list">
         {slots.map((jogador, idx) => (
           <li key={idx} className={jogador ? 'filled' : 'empty'}>

@@ -22,19 +22,45 @@ export default function RachaPage() {
   }
 
   const total = estado.jogadores.length;
+  const vagas = Math.max(estado.maxJogadores - total, 0);
+  const percentual = Math.min(100, Math.round((total / estado.maxJogadores) * 100));
   const { data_abertura } = estado.racha;
+
+  let statusLabel = 'Lista fechada';
+  let statusClass = 'status-pill status-closed';
+
+  if (estado.fechado) {
+    statusLabel = 'Lista completa';
+    statusClass = 'status-pill status-full';
+  } else if (estado.listaAberta) {
+    statusLabel = 'Lista aberta';
+    statusClass = 'status-pill status-open';
+  }
 
   return (
     <div className="grid">
       <div className="card">
-        <h2>Racha do {estado.racha.nome_dono}</h2>
-        <p className="muted">
-          {total} de {estado.maxJogadores} jogadores
-        </p>
+        <div className="card-head">
+          <h2>Racha do {estado.racha.nome_dono}</h2>
+          <span className={statusClass}>{statusLabel}</span>
+        </div>
+
+        <div className="occupancy-box" aria-label="ocupacao da lista">
+          <div className="occupancy-meta">
+            <strong>{total} / {estado.maxJogadores} jogadores</strong>
+            <span>{percentual}% preenchida</span>
+          </div>
+          <div className="occupancy-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentual}>
+            <span style={{ width: `${percentual}%` }} />
+          </div>
+          <p className="muted occupancy-note">
+            {vagas > 0 ? `${vagas} vaga(s) ainda disponível(is).` : 'Sem vagas disponíveis.'}
+          </p>
+        </div>
 
         {estado.fechado ? (
           <div className="alert alert-success">
-            Lista fechada! O PDF foi enviado para o organizador. ⚽
+            Lista fechada! O PDF foi enviado para o organizador.
           </div>
         ) : !estado.listaAberta ? (
           <div className="alert alert-warn">

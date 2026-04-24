@@ -162,4 +162,19 @@ describe('<CreateRachaPage />', () => {
       }),
     );
   });
+
+  test('mostra preview quando data e hora são preenchidas', async () => {
+    api.criarRacha.mockResolvedValue({
+      shareUrl: 'http://localhost:5173/racha/abc',
+      racha: { id: 'abc', data_abertura: null, max_jogadores: 10 },
+    });
+
+    const user = userEvent.setup();
+    render(<CreateRachaPage />);
+
+    await user.type(screen.getByLabelText(/data/i), '31/12/2026');
+    await user.type(screen.getByLabelText(/hora/i), '12:00');
+
+    expect(screen.getByText(/a lista será aberta em/i)).toBeInTheDocument();
+  });
 });

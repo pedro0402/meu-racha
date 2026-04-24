@@ -41,6 +41,22 @@ function onlyDigits(value) {
   return value.replace(/\D/g, '');
 }
 
+function formatAberturaPreview(dataBr, hora) {
+  const isoDate = parseDateBr(dataBr);
+  if (!isoDate || !hora) return '';
+
+  const date = new Date(`${isoDate}T${hora}:00`);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
 export default function CreateRachaPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -54,6 +70,7 @@ export default function CreateRachaPage() {
   const [criado, setCriado] = useState(null);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
+  const aberturaPreview = formatAberturaPreview(form.data, form.hora);
 
   const update = (campo) => (e) => {
     const { value } = e.target;
@@ -213,6 +230,11 @@ export default function CreateRachaPage() {
         <small className="muted">
           Antes desse horário, ninguém consegue entrar na lista.
         </small>
+        {aberturaPreview && (
+          <p className="abertura-preview">
+            A lista será aberta em <strong>{aberturaPreview}</strong>.
+          </p>
+        )}
       </fieldset>
 
       {erro && <div className="alert alert-error">{erro}</div>}
