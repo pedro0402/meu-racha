@@ -37,6 +37,24 @@ body {
   flex-direction: column;
 }
 
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -42px;
+  z-index: 20;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #021426;
+  text-decoration: none;
+  font-weight: 700;
+  transition: top .15s ease;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
 .header {
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
@@ -78,7 +96,11 @@ body {
   padding: 24px;
   margin-bottom: 16px;
   box-shadow: 0 10px 35px rgba(0, 10, 20, 0.28);
+  animation: rise-in .45s ease both;
 }
+
+.container .card:nth-of-type(2) { animation-delay: .06s; }
+.container .card:nth-of-type(3) { animation-delay: .12s; }
 
 .hero h1 {
   font-family: 'Chakra Petch', sans-serif;
@@ -281,6 +303,18 @@ h3 { margin-top: 0; color: var(--text); }
   100% { background-position: -200% 0; }
 }
 
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .form-intro {
   margin-top: -2px;
   margin-bottom: 14px;
@@ -403,6 +437,13 @@ input:focus {
   color: #fff;
 }
 
+.btn:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid #8ee4ff;
+  outline-offset: 2px;
+}
+
 .alert {
   padding: 12px 14px;
   border-radius: 10px;
@@ -496,6 +537,10 @@ input:focus {
 .join-form { margin-top: 12px; }
 
 @media (max-width: 759px) {
+  .container {
+    padding-top: 24px;
+  }
+
   .card-head {
     flex-direction: column;
     align-items: flex-start;
@@ -509,5 +554,18 @@ input:focus {
 
   .datetime-row {
     flex-direction: column;
+  }
+
+  .join-form .btn,
+  form .btn-primary {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }

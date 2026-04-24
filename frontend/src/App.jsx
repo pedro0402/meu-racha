@@ -6,11 +6,13 @@ import RachaPage from './pages/RachaPage.jsx';
 export default function App() {
   return (
     <div className="app">
+      <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo</a>
+
       <header className="header">
         <Link to="/" className="logo">⚽ MeuRacha</Link>
       </header>
 
-      <main className="container">
+      <main className="container" id="conteudo-principal" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/criar" element={<CreateRachaPage />} />
