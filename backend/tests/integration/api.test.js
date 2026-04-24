@@ -177,7 +177,7 @@ describe('POST /api/rachas', () => {
   });
 
   test('400 quando racha está expirado ao consultar', async () => {
-    const racha = rachaService.criarRacha({
+    const racha = await rachaService.criarRacha({
       nome_dono: 'Expirado',
       email: 'expirado@x.com',
       telefone: '11999999999',
@@ -292,7 +292,7 @@ describe('POST /api/rachas/:id/jogadores', () => {
   });
 
   test('410 LISTA_EXPIRADA quando a lista já passou do prazo', async () => {
-    const expired = rachaService.criarRacha({
+    const expired = await rachaService.criarRacha({
       nome_dono: 'Pedro',
       email: 'pedro@x.com',
       telefone: '11999999999',

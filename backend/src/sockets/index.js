@@ -8,24 +8,28 @@ const { isRachaExpirada } = require('../utils/time');
  */
 function attachSocket(io) {
   io.on('connection', (socket) => {
-    socket.on('racha:entrar', ({ rachaId }) => {
+    socket.on('racha:entrar', async ({ rachaId }) => {
       if (typeof rachaId !== 'string') return;
 
-      const racha = rachaService.getRacha(rachaId);
-      if (!racha) {
-        socket.emit('racha:erro', { message: 'Racha não encontrado' });
-        return;
+      try {
+        const racha = await rachaService.getRacha(rachaId);
+        if (!racha) {
+          socket.emit('racha:erro', { message: 'Racha não encontrado' });
+          return;
+        }
+
+        if (isRachaExpirada(racha)) {
+          socket.emit('racha:erro', { message: 'A lista deste racha expirou e não está mais disponível.' });
+          return;
+        }
+
+        socket.join(`racha:${rachaId}`);
+
+        const jogadores = await rachaService.listarJogadores(rachaId);
+        socket.emit('jogadores:atualizados', { jogadores });
+      } catch (_err) {
+        socket.emit('racha:erro', { message: 'Erro interno ao carregar racha.' });
       }
-
-      if (isRachaExpirada(racha)) {
-        socket.emit('racha:erro', { message: 'A lista deste racha expirou e não está mais disponível.' });
-        return;
-      }
-
-      socket.join(`racha:${rachaId}`);
-
-      const jogadores = rachaService.listarJogadores(rachaId);
-      socket.emit('jogadores:atualizados', { jogadores });
     });
 
     socket.on('racha:sair', ({ rachaId }) => {

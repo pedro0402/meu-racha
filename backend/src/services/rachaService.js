@@ -1,5 +1,6 @@
 const { customAlphabet } = require('nanoid');
 const db = require('../db/database');
+const pg = require('../db/postgres');
 const config = require('../config');
 const { normalizeName } = require('../utils/normalize');
 const { addHoursToLocalString } = require('../utils/time');
@@ -10,39 +11,36 @@ const { addHoursToLocalString } = require('../utils/time');
  */
 const genId = customAlphabet('abcdefghijkmnopqrstuvwxyz23456789', 10);
 
-// ----------- Statements pré-compilados (mais performático) -----------
+let initPromise = null;
 
-const stmtInsertRacha = db.prepare(`
-  INSERT INTO rachas (id, nome_dono, email, telefone, data_abertura, expira_em, max_jogadores)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-`);
+async function ensurePostgresInit() {
+  if (!pg.isPostgresEnabled()) return;
+  if (!initPromise) {
+    initPromise = pg.runInitSqlIfNeeded();
+  }
+  await initPromise;
+}
 
-const stmtGetRacha = db.prepare(`SELECT * FROM rachas WHERE id = ?`);
+function buildError(code, message) {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
 
-const stmtCountJogadores = db.prepare(`
-  SELECT COUNT(*) AS total FROM jogadores WHERE racha_id = ?
-`);
+function normalizeInputName(nomeOriginal) {
+  const nome = String(nomeOriginal).replace(/\s+/g, ' ').trim();
+  const nomeNorm = normalizeName(nome);
+  if (nomeNorm.length < 2) {
+    throw buildError('INVALID_NAME', 'Nome inválido');
+  }
+  return { nome, nomeNorm };
+}
 
-const stmtListJogadores = db.prepare(`
-  SELECT id, nome, data_entrada
-  FROM jogadores
-  WHERE racha_id = ?
-  ORDER BY id ASC
-`);
+function toSqliteRachaNotFound(value) {
+  return value === undefined ? null : value;
+}
 
-const stmtInsertJogador = db.prepare(`
-  INSERT INTO jogadores (racha_id, nome, nome_norm)
-  VALUES (?, ?, ?)
-`);
-
-const stmtMarcarPdfGerado = db.prepare(`
-  UPDATE rachas SET pdf_gerado = 1
-  WHERE id = ? AND pdf_gerado = 0
-`);
-
-// ----------- Funções públicas -----------
-
-function criarRacha({
+async function criarRacha({
   nome_dono,
   email,
   telefone,
@@ -53,20 +51,69 @@ function criarRacha({
   const expiraEm = data_abertura
     ? addHoursToLocalString(data_abertura, config.listaExpiracaoHoras)
     : null;
-  stmtInsertRacha.run(id, nome_dono, email, telefone, data_abertura, expiraEm, max_jogadores);
+
+  if (!pg.isPostgresEnabled()) {
+    const stmtInsertRacha = db.prepare(`
+      INSERT INTO rachas (id, nome_dono, email, telefone, data_abertura, expira_em, max_jogadores)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmtInsertRacha.run(id, nome_dono, email, telefone, data_abertura, expiraEm, max_jogadores);
+    return toSqliteRachaNotFound(db.prepare('SELECT * FROM rachas WHERE id = ?').get(id));
+  }
+
+  await ensurePostgresInit();
+  await pg.query(
+    `
+      INSERT INTO rachas (id, nome_dono, email, telefone, data_abertura, expira_em, max_jogadores)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `,
+    [id, nome_dono, email, telefone, data_abertura, expiraEm, max_jogadores],
+  );
+
   return getRacha(id);
 }
 
-function getRacha(id) {
-  return stmtGetRacha.get(id);
+async function getRacha(id) {
+  if (!pg.isPostgresEnabled()) {
+    return toSqliteRachaNotFound(db.prepare('SELECT * FROM rachas WHERE id = ?').get(id));
+  }
+
+  await ensurePostgresInit();
+  const res = await pg.query('SELECT * FROM rachas WHERE id = $1', [id]);
+  return res.rows[0] || null;
 }
 
-function listarJogadores(rachaId) {
-  return stmtListJogadores.all(rachaId);
+async function listarJogadores(rachaId) {
+  if (!pg.isPostgresEnabled()) {
+    return db.prepare(`
+      SELECT id, nome, data_entrada
+      FROM jogadores
+      WHERE racha_id = ?
+      ORDER BY id ASC
+    `).all(rachaId);
+  }
+
+  await ensurePostgresInit();
+  const res = await pg.query(
+    `
+      SELECT id, nome, data_entrada
+      FROM jogadores
+      WHERE racha_id = $1
+      ORDER BY id ASC
+    `,
+    [rachaId],
+  );
+  return res.rows;
 }
 
-function contarJogadores(rachaId) {
-  return stmtCountJogadores.get(rachaId).total;
+async function contarJogadores(rachaId) {
+  if (!pg.isPostgresEnabled()) {
+    return db.prepare('SELECT COUNT(*) AS total FROM jogadores WHERE racha_id = ?').get(rachaId).total;
+  }
+
+  await ensurePostgresInit();
+  const res = await pg.query('SELECT COUNT(*)::int AS total FROM jogadores WHERE racha_id = $1', [rachaId]);
+  return res.rows[0]?.total || 0;
 }
 
 /**
@@ -75,67 +122,120 @@ function contarJogadores(rachaId) {
  *  - limite de jogadores (atomicamente)
  *  - duplicidade de nome no mesmo racha (UNIQUE no banco)
  *
- * Toda a lógica é executada dentro de uma TRANSAÇÃO para evitar
- * que requisições concorrentes ultrapassem o limite (race condition).
- *
  * Retorna { jogador, jogadores, atingiuLimite }.
  */
-const addJogadorTx = db.transaction((rachaId, nomeOriginal) => {
-  const racha = stmtGetRacha.get(rachaId);
-  if (!racha) {
-    const err = new Error('Racha não encontrado');
-    err.code = 'NOT_FOUND';
-    throw err;
+async function adicionarJogador(rachaId, nomeOriginal) {
+  const { nome, nomeNorm } = normalizeInputName(nomeOriginal);
+
+  if (!pg.isPostgresEnabled()) {
+    const addJogadorTx = db.transaction((txRachaId, txNome, txNomeNorm) => {
+      const racha = db.prepare('SELECT * FROM rachas WHERE id = ?').get(txRachaId);
+      if (!racha) {
+        throw buildError('NOT_FOUND', 'Racha não encontrado');
+      }
+
+      const total = db.prepare('SELECT COUNT(*) AS total FROM jogadores WHERE racha_id = ?').get(txRachaId).total;
+      const limite = racha.max_jogadores;
+      if (total >= limite) {
+        throw buildError('FULL', `Lista cheia (limite ${limite})`);
+      }
+
+      try {
+        db.prepare('INSERT INTO jogadores (racha_id, nome, nome_norm) VALUES (?, ?, ?)').run(
+          txRachaId,
+          txNome,
+          txNomeNorm,
+        );
+      } catch (e) {
+        if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+          throw buildError('DUPLICATE', 'Esse nome já está na lista');
+        }
+        throw e;
+      }
+
+      const jogadores = db.prepare(`
+        SELECT id, nome, data_entrada
+        FROM jogadores
+        WHERE racha_id = ?
+        ORDER BY id ASC
+      `).all(txRachaId);
+
+      return {
+        jogador: jogadores[jogadores.length - 1],
+        jogadores,
+        atingiuLimite: jogadores.length >= limite,
+      };
+    });
+
+    return addJogadorTx(rachaId, nome, nomeNorm);
   }
 
-  const total = stmtCountJogadores.get(rachaId).total;
-  const limite = racha.max_jogadores;
-  if (total >= limite) {
-    const err = new Error(`Lista cheia (limite ${limite})`);
-    err.code = 'FULL';
-    throw err;
-  }
+  await ensurePostgresInit();
 
-  const nome = nomeOriginal.replace(/\s+/g, ' ').trim();
-  const nomeNorm = normalizeName(nome);
-
-  if (nomeNorm.length < 2) {
-    const err = new Error('Nome inválido');
-    err.code = 'INVALID_NAME';
-    throw err;
-  }
-
-  try {
-    stmtInsertJogador.run(rachaId, nome, nomeNorm);
-  } catch (e) {
-    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      const err = new Error('Esse nome já está na lista');
-      err.code = 'DUPLICATE';
-      throw err;
+  return pg.withTransaction(async (tx) => {
+    const rachaRes = await tx.query('SELECT * FROM rachas WHERE id = $1 FOR UPDATE', [rachaId]);
+    const racha = rachaRes.rows[0];
+    if (!racha) {
+      throw buildError('NOT_FOUND', 'Racha não encontrado');
     }
-    throw e;
-  }
 
-  const jogadores = stmtListJogadores.all(rachaId);
-  return {
-    jogador: jogadores[jogadores.length - 1],
-    jogadores,
-    atingiuLimite: jogadores.length >= limite,
-  };
-});
+    const totalRes = await tx.query('SELECT COUNT(*)::int AS total FROM jogadores WHERE racha_id = $1', [rachaId]);
+    const total = totalRes.rows[0]?.total || 0;
+    const limite = racha.max_jogadores;
+    if (total >= limite) {
+      throw buildError('FULL', `Lista cheia (limite ${limite})`);
+    }
 
-function adicionarJogador(rachaId, nomeOriginal) {
-  return addJogadorTx(rachaId, nomeOriginal);
+    try {
+      await tx.query(
+        'INSERT INTO jogadores (racha_id, nome, nome_norm) VALUES ($1, $2, $3)',
+        [rachaId, nome, nomeNorm],
+      );
+    } catch (e) {
+      if (e.code === '23505') {
+        throw buildError('DUPLICATE', 'Esse nome já está na lista');
+      }
+      throw e;
+    }
+
+    const jogadoresRes = await tx.query(
+      `
+        SELECT id, nome, data_entrada
+        FROM jogadores
+        WHERE racha_id = $1
+        ORDER BY id ASC
+      `,
+      [rachaId],
+    );
+
+    const jogadores = jogadoresRes.rows;
+    return {
+      jogador: jogadores[jogadores.length - 1],
+      jogadores,
+      atingiuLimite: jogadores.length >= limite,
+    };
+  });
 }
 
 /**
- * Marca pdf_gerado = 1 atomicamente.
- * Retorna true SOMENTE se foi este chamador que conseguiu marcar
- * (impede geração duplicada em race condition).
+ * Marca pdf_gerado de forma atômica.
+ * Retorna true SOMENTE se foi este chamador que conseguiu marcar.
  */
-function tentarReservarGeracaoPdf(rachaId) {
-  const result = stmtMarcarPdfGerado.run(rachaId);
-  return result.changes === 1;
+async function tentarReservarGeracaoPdf(rachaId) {
+  if (!pg.isPostgresEnabled()) {
+    const result = db.prepare(`
+      UPDATE rachas SET pdf_gerado = 1
+      WHERE id = ? AND pdf_gerado = 0
+    `).run(rachaId);
+    return result.changes === 1;
+  }
+
+  await ensurePostgresInit();
+  const res = await pg.query(
+    'UPDATE rachas SET pdf_gerado = TRUE WHERE id = $1 AND pdf_gerado = FALSE',
+    [rachaId],
+  );
+  return res.rowCount === 1;
 }
 
 module.exports = {

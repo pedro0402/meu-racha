@@ -54,10 +54,10 @@ function esperaEvento(socket, evento, ms = 2000) {
 
 describe('Socket.IO', () => {
   test('cliente recebe lista atual ao entrar na sala do racha', async () => {
-    const racha = rachaService.criarRacha({
+    const racha = await rachaService.criarRacha({
       nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(),
     });
-    rachaService.adicionarJogador(racha.id, 'Existente');
+    await rachaService.adicionarJogador(racha.id, 'Existente');
 
     const socket = novoCliente();
     await new Promise((r) => socket.on('connect', r));
@@ -72,7 +72,7 @@ describe('Socket.IO', () => {
   });
 
   test('outro cliente recebe broadcast quando alguém entra via REST', async () => {
-    const racha = rachaService.criarRacha({
+    const racha = await rachaService.criarRacha({
       nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(),
     });
 
@@ -94,11 +94,11 @@ describe('Socket.IO', () => {
   });
 
   test('emite racha:fechado para a sala quando atinge limite', async () => {
-    const racha = rachaService.criarRacha({
+    const racha = await rachaService.criarRacha({
       nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(), max_jogadores: 3,
     });
     for (let i = 0; i < 2; i++) {
-      rachaService.adicionarJogador(racha.id, `J${i}`);
+      await rachaService.adicionarJogador(racha.id, `J${i}`);
     }
 
     const observador = novoCliente();
@@ -131,7 +131,7 @@ describe('Socket.IO', () => {
   });
 
   test('racha expirado recebe racha:erro ao entrar', async () => {
-    const racha = rachaService.criarRacha({
+    const racha = await rachaService.criarRacha({
       nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: '2026-04-18T12:00',
     });
 
