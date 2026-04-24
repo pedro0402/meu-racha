@@ -18,11 +18,15 @@ Veja `.env.example`. As principais:
 | --------------- | --------------------------------------------------------- |
 | `PORT`          | Porta HTTP (default 3001)                                 |
 | `FRONTEND_URL`  | Origem permitida no CORS e usada para gerar `shareUrl`    |
+| `DATABASE_URL`  | Connection string Postgres (Supabase). Vazio = SQLite local |
+| `DATABASE_SSL`  | SSL do Postgres (`require` em nuvem; vazio em dev local)  |
 | `MAX_JOGADORES` | Limite de jogadores por racha (default 18)                |
 | `DIA_PERMITIDO` | Dia da semana permitido (0=domingo)                       |
 | `HORA_MINIMA`   | Hora mínima para abrir a lista (formato 24h)              |
 | `TIMEZONE`      | Fuso considerado autoritativo                             |
 | `SMTP_*`        | Configuração SMTP. Vazio em dev → usa Ethereal (preview)  |
+
+Schema SQL inicial para Supabase/Postgres: `src/db/sql/init_postgres.sql`.
 
 ## Arquitetura
 
