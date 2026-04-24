@@ -144,6 +144,15 @@ export default function CreateRachaPage() {
   return (
     <form className="card" onSubmit={onSubmit}>
       <h2>Criar racha</h2>
+      <p className="muted form-intro">
+        Preencha os dados abaixo para abrir sua lista com controle de vagas e entrada em tempo real.
+      </p>
+
+      <div className="quick-checklist" aria-label="resumo do fluxo">
+        <span>1. Defina os dados</span>
+        <span>2. Gere o link</span>
+        <span>3. Compartilhe com a galera</span>
+      </div>
 
       <label>
         Seu nome

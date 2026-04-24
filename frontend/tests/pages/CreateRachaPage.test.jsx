@@ -59,6 +59,14 @@ describe('<CreateRachaPage />', () => {
     expect(screen.getByText(/mínimo de 2 jogadores para criar a lista/i)).toBeInTheDocument();
   });
 
+  test('renderiza checklist rápido do fluxo de criação', () => {
+    render(<CreateRachaPage />);
+
+    expect(screen.getByText(/1. defina os dados/i)).toBeInTheDocument();
+    expect(screen.getByText(/2. gere o link/i)).toBeInTheDocument();
+    expect(screen.getByText(/3. compartilhe com a galera/i)).toBeInTheDocument();
+  });
+
   test('formata telefone com máscara brasileira', async () => {
     api.criarRacha.mockResolvedValue({
       shareUrl: 'http://localhost:5173/racha/abc',

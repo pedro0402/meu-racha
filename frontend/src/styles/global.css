@@ -92,6 +92,91 @@ body {
   margin-bottom: 20px;
 }
 
+.home-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.hero-split {
+  display: grid;
+  gap: 20px;
+}
+
+.hero-kicker {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7ad7ff;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hero-panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.hero-panel h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.bullet-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  display: grid;
+  gap: 7px;
+}
+
+.how-it-works h2 {
+  margin-bottom: 14px;
+}
+
+.steps-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+.step-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.step-card h3 {
+  margin: 8px 0 6px;
+}
+
+.step-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(0, 179, 255, 0.16);
+  border: 1px solid rgba(0, 179, 255, 0.35);
+  color: #c6ecff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
 h2 { margin-top: 0; }
 h3 { margin-top: 0; color: var(--text); }
 .muted { color: var(--muted); }
@@ -171,6 +256,27 @@ h3 { margin-top: 0; color: var(--text); }
 .occupancy-note {
   margin: 8px 0 0;
   font-size: 14px;
+}
+
+.form-intro {
+  margin-top: -2px;
+  margin-bottom: 14px;
+}
+
+.quick-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.quick-checklist span {
+  border-radius: 999px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+  font-size: 13px;
 }
 
 label {
@@ -312,6 +418,15 @@ input:focus {
 
 @media (min-width: 760px) {
   .grid { grid-template-columns: 1fr 1fr; }
+
+  .hero-split {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: start;
+  }
+
+  .steps-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .player-list {
