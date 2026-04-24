@@ -1,43 +1,63 @@
 # ⚽ MeuRacha
 
-Aplicação para gerenciar listas de jogadores de **rachas semanais**, substituindo
-a clássica lista no WhatsApp por uma experiência justa, em tempo real e
-automatizada.
+![MeuRacha](https://img.shields.io/badge/MeuRacha-MVP%20de%20rachas-brightgreen)
+![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61dafb)
+![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-3c873a)
+![Tempo real](https://img.shields.io/badge/Tempo%20real-Socket.IO-010101)
+![Banco](https://img.shields.io/badge/Banco-Supabase%20%2F%20Postgres-336791)
 
-## 🚀 Visão geral
+MeuRacha é um MVP para organizar listas de jogadores de racha de forma clara, justa e em tempo real. A ideia é substituir a lista bagunçada do WhatsApp por um fluxo simples: criar, compartilhar, entrar e acompanhar a lista ao vivo.
 
-- **Dono do racha** cria um racha (nome, e-mail, telefone) e **escolhe quando
-  a lista abre**. Recebe um link exclusivo para compartilhar.
-- **Jogadores** acessam o link, digitam o nome e entram na lista.
-- A lista é **ordenada por ordem de chegada**, com **limite de 18 jogadores**.
-- O horário de abertura é definido pelo dono do racha e **validado no servidor**
-  (o relógio do cliente é ignorado).
-- Tudo é atualizado **em tempo real** via WebSocket (Socket.IO).
-- Quando atinge 18 jogadores, o sistema **gera um PDF** e **envia por e-mail**
-  ao dono do racha.
+## Destaques
 
-## 🧱 Stack
+- Criação de racha com horário de abertura definido pelo organizador.
+- Link compartilhável para entrada na lista.
+- Atualização em tempo real via Socket.IO.
+- Ordem de chegada preservada, com limite configurável de jogadores.
+- Fechamento automático ao atingir o limite.
+- Geração de PDF e envio por e-mail ao final.
+- Banco em Supabase/Postgres com suporte ao fluxo de produção.
 
-| Camada      | Tecnologia                      |
-| ----------- | ------------------------------- |
-| Frontend    | React + Vite + React Router     |
-| Tempo real  | Socket.IO (cliente + servidor)  |
-| Backend     | Node.js + Express               |
-| Banco       | SQLite (better-sqlite3) — fácil migração para PostgreSQL |
-| PDF         | pdfkit                          |
-| E-mail      | nodemailer (com fallback Ethereal em dev) |
+## Como funciona
 
-## 📂 Estrutura
+1. O organizador cria o racha com nome, e-mail, telefone e horário de abertura.
+2. O sistema gera um link exclusivo para compartilhar.
+3. Os jogadores acessam a página do racha e entram na lista.
+4. A ocupação é atualizada em tempo real para todos.
+5. Ao atingir o limite, a lista fecha e o PDF é enviado por e-mail.
 
-```
+## Principais telas
+
+- Home com proposta clara do produto.
+- Página de criação com preview da abertura e link compartilhável.
+- Página do racha com status visual, ocupação da lista e contagem regressiva.
+
+## Stack
+
+| Camada | Tecnologia |
+| --- | --- |
+| Frontend | React, Vite, React Router |
+| Backend | Node.js, Express |
+| Tempo real | Socket.IO |
+| Banco | Supabase Postgres |
+| PDF | pdfkit |
+| E-mail | nodemailer |
+| Testes | Jest, Vitest, Testing Library, Playwright |
+
+## Estrutura do projeto
+
+```text
 MeuRacha/
-├── backend/        # API REST + Socket.IO + PDF + e-mail
-└── frontend/       # SPA em React (Vite)
+├── backend/        API REST, Socket.IO, PDF e e-mail
+├── frontend/       SPA em React com Vite
+├── e2e/            testes ponta a ponta com Playwright
+├── DEPLOY.md       guia de deploy gratuito
+└── TESTING.md      estratégia de testes
 ```
 
-## ▶️ Como rodar
+## Rodando localmente
 
-### 1. Backend
+### Backend
 
 ```bash
 cd backend
@@ -46,11 +66,9 @@ npm install
 npm run dev
 ```
 
-API: `http://localhost:3001`
+API em `http://localhost:3001`.
 
-### 2. Frontend
-
-Em outro terminal:
+### Frontend
 
 ```bash
 cd frontend
@@ -59,54 +77,64 @@ npm install
 npm run dev
 ```
 
-App: `http://localhost:5173`
+App em `http://localhost:5173`.
 
-## 🧪 Testando o fluxo de fechamento
+## Deploy
 
-A regra de horário **é definida por racha**: o dono escolhe data e hora ao criar.
-Para testar agora, basta criar um racha com `data_abertura` no passado (ou daqui
-a 1 minuto, para ver o countdown agindo).
+O projeto está preparado para hospedagem gratuita com:
 
-As variáveis `DIA_PERMITIDO` / `HORA_MINIMA` em `backend/.env` continuam servindo
-apenas como **fallback** para rachas legados que foram criados sem `data_abertura`.
+- Frontend na Vercel
+- Backend na Render
+- Banco no Supabase
 
-Quando 18 jogadores entrarem na lista, o backend:
+Veja o passo a passo em [`DEPLOY.md`](./DEPLOY.md).
 
-1. Reserva atomicamente a geração do PDF (`pdf_gerado = 1`),
-2. Gera o PDF em `backend/pdfs/racha-<id>.pdf`,
-3. Envia por e-mail (em dev, imprime no console um link de preview do Ethereal),
-4. Emite o evento `racha:fechado` para todos conectados ao racha.
+## Testes
 
-## 🔒 Garantias técnicas implementadas
+A suíte está dividida em três camadas:
 
-| Problema                       | Solução |
-| ------------------------------ | ------- |
-| Concorrência (limite 18)       | Transação `better-sqlite3` (count + insert atômico) |
-| Duplicidade de nomes           | Coluna `nome_norm` + `UNIQUE(racha_id, nome_norm)` |
-| Manipulação de horário no front| Validação no backend usando `Intl.DateTimeFormat` no fuso oficial; comparação contra a `data_abertura` do racha |
-| Atualização em tempo real      | Salas Socket.IO por `rachaId` (broadcast direcionado) |
-| Geração duplicada de PDF       | `UPDATE rachas SET pdf_gerado=1 WHERE id=? AND pdf_gerado=0` (atômico) |
+- Unitários
+- Integração
+- E2E
 
-Veja também os READMEs específicos em `backend/` e `frontend/`.
+Veja a visão completa em [`TESTING.md`](./TESTING.md).
 
-## ☁️ Deploy
-
-Guia completo de hospedagem gratuita (Vercel + Render):
-
-- [`DEPLOY.md`](./DEPLOY.md)
-
-## 🧪 Testes
-
-A aplicação tem suíte completa em três camadas (unitários, integração e E2E).
-Veja [`TESTING.md`](./TESTING.md) para detalhes. Resumo rápido:
+Resumo rápido:
 
 ```bash
-# Backend (Jest + supertest)
-cd backend && npm install && npm test
+# Backend
+cd backend && npm test
 
-# Frontend (Vitest + Testing Library)
-cd frontend && npm install && npm test
+# Frontend
+cd frontend && npm test && npm run build
 
-# E2E (Playwright)
-cd e2e && npm install && npx playwright install chromium && npm test
+# E2E
+cd e2e && npm test
 ```
+
+## Documentação complementar
+
+- [`backend/README.md`](./backend/README.md)
+- [`frontend/README.md`](./frontend/README.md)
+- [`DEPLOY.md`](./DEPLOY.md)
+- [`TESTING.md`](./TESTING.md)
+
+## O que o MVP já entrega
+
+- Lista em tempo real.
+- Bloqueio por horário configurado no servidor.
+- Proteção contra nomes duplicados.
+- Fechamento automático ao atingir o limite.
+- Fluxo pronto para produção com Supabase, Vercel e Render.
+
+## Próximos passos naturais
+
+- Login do organizador.
+- QR Code para compartilhamento.
+- Lista de espera quando lotar.
+- Histórico de rachas.
+- Métricas simples de uso.
+
+---
+
+Se você quiser, pode começar lendo o fluxo em [`backend/README.md`](./backend/README.md) e [`frontend/README.md`](./frontend/README.md) para entender cada camada por dentro.
