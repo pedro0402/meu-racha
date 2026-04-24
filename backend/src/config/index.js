@@ -3,6 +3,10 @@ require('dotenv').config();
 const config = {
   port: parseInt(process.env.PORT || '3001', 10),
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  database: {
+    url: process.env.DATABASE_URL || '',
+    ssl: process.env.DATABASE_SSL || '',
+  },
   maxJogadores: parseInt(process.env.MAX_JOGADORES || '18', 10),
   listaExpiracaoHoras: parseInt(process.env.LISTA_EXPIRACAO_HORAS || '24', 10),
   diaPermitido: parseInt(process.env.DIA_PERMITIDO || '0', 10),

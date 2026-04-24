@@ -27,6 +27,7 @@ Veja `.env.example`. As principais:
 | `SMTP_*`        | Configuração SMTP. Vazio em dev → usa Ethereal (preview)  |
 
 Schema SQL inicial para Supabase/Postgres: `src/db/sql/init_postgres.sql`.
+Helper de conexão para a próxima etapa da migração: `src/db/postgres.js`.
 
 ## Arquitetura
 
@@ -34,6 +35,7 @@ Schema SQL inicial para Supabase/Postgres: `src/db/sql/init_postgres.sql`.
 backend/src
 ├── config/             # carregamento de .env e defaults
 ├── db/database.js      # conexão SQLite + migração inline + statements
+├── db/postgres.js      # conexão Postgres (Pool, query, transação)
 ├── middleware/         # validateTime (regra de horário)
 ├── routes/             # rotas Express (rachas)
 ├── services/
