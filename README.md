@@ -1,36 +1,67 @@
 # ⚽ MeuRacha
 
-![MeuRacha](https://img.shields.io/badge/MeuRacha-MVP%20de%20rachas-brightgreen)
-![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61dafb)
-![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-3c873a)
-![Tempo real](https://img.shields.io/badge/Tempo%20real-Socket.IO-010101)
-![Banco](https://img.shields.io/badge/Banco-Supabase%20%2F%20Postgres-336791)
+<p align="center">
+	<img src="./docs/assets/meuracha-banner.svg" alt="MeuRacha - listas de racha em tempo real" width="100%" />
+</p>
 
-MeuRacha é um MVP para organizar listas de jogadores de racha de forma clara, justa e em tempo real. A ideia é substituir a lista bagunçada do WhatsApp por um fluxo simples: criar, compartilhar, entrar e acompanhar a lista ao vivo.
+<p align="center">
+	<img src="https://img.shields.io/badge/MeuRacha-MVP%20de%20rachas-brightgreen" alt="MeuRacha" />
+	<img src="https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61dafb" alt="Frontend" />
+	<img src="https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-3c873a" alt="Backend" />
+	<img src="https://img.shields.io/badge/Tempo%20real-Socket.IO-010101" alt="Tempo real" />
+	<img src="https://img.shields.io/badge/Banco-Supabase%20%2F%20Postgres-336791" alt="Banco" />
+</p>
 
-## Destaques
+> Organizar racha não precisa virar uma thread infinita no WhatsApp.
+> O MeuRacha transforma essa bagunça em uma experiência simples, visual e em tempo real.
 
-- Criação de racha com horário de abertura definido pelo organizador.
-- Link compartilhável para entrada na lista.
-- Atualização em tempo real via Socket.IO.
-- Ordem de chegada preservada, com limite configurável de jogadores.
-- Fechamento automático ao atingir o limite.
-- Geração de PDF e envio por e-mail ao final.
-- Banco em Supabase/Postgres com suporte ao fluxo de produção.
+## Por que o MeuRacha existe
 
-## Como funciona
+Todo racha tem a mesma dor: a lista começa organizada, depois vira um caos de mensagens, nomes repetidos e dúvidas sobre quem entrou primeiro. O MeuRacha resolve isso com uma página única, link compartilhável e atualização ao vivo.
 
-1. O organizador cria o racha com nome, e-mail, telefone e horário de abertura.
-2. O sistema gera um link exclusivo para compartilhar.
-3. Os jogadores acessam a página do racha e entram na lista.
-4. A ocupação é atualizada em tempo real para todos.
-5. Ao atingir o limite, a lista fecha e o PDF é enviado por e-mail.
+## O que ele faz na prática
 
-## Principais telas
+- Você cria o racha em menos de um minuto.
+- O sistema gera um link exclusivo para compartilhar.
+- Quem entrar vê a lista atualizada em tempo real.
+- O horário de abertura é controlado no servidor.
+- Ao atingir o limite, a lista fecha sozinha.
+- No fim, o PDF é gerado e enviado por e-mail.
 
-- Home com proposta clara do produto.
-- Página de criação com preview da abertura e link compartilhável.
-- Página do racha com status visual, ocupação da lista e contagem regressiva.
+## O fluxo em uma imagem
+
+```mermaid
+flowchart LR
+	A[Criar racha] --> B[Gerar link]
+	B --> C[Compartilhar no grupo]
+	C --> D[Jogadores entram]
+	D --> E[Atualizacao em tempo real]
+	E --> F[Lista fecha ao atingir o limite]
+	F --> G[PDF + e-mail]
+```
+
+## Telas principais
+
+### Home
+
+Uma landing page direta, com proposta clara, chamadas objetivas e foco em conversão.
+
+### Criação do racha
+
+Formulário com preview da abertura, validação amigável e link compartilhável logo após salvar.
+
+### Lista do racha
+
+Tela com status visual, ocupação da lista, contagem regressiva e feedback em tempo real.
+
+## Diferenciais do MVP
+
+- Visual mais limpo do que uma lista no chat.
+- Ordem de chegada preservada.
+- Status claro: aberta, fechada ou expirada.
+- Barra de ocupação para enxergar o progresso de cara.
+- Fallback pronto para produção com Vercel, Render e Supabase.
+- Testes em três camadas para sustentar a evolução.
 
 ## Stack
 
@@ -79,15 +110,15 @@ npm run dev
 
 App em `http://localhost:5173`.
 
-## Deploy
+## Deploy gratuito
 
-O projeto está preparado para hospedagem gratuita com:
+O projeto está pronto para subir com:
 
 - Frontend na Vercel
 - Backend na Render
 - Banco no Supabase
 
-Veja o passo a passo em [`DEPLOY.md`](./DEPLOY.md).
+O passo a passo está em [`DEPLOY.md`](./DEPLOY.md).
 
 ## Testes
 
@@ -97,7 +128,7 @@ A suíte está dividida em três camadas:
 - Integração
 - E2E
 
-Veja a visão completa em [`TESTING.md`](./TESTING.md).
+Detalhes em [`TESTING.md`](./TESTING.md).
 
 Resumo rápido:
 
@@ -119,13 +150,14 @@ cd e2e && npm test
 - [`DEPLOY.md`](./DEPLOY.md)
 - [`TESTING.md`](./TESTING.md)
 
-## O que o MVP já entrega
+## O MVP já entrega
 
 - Lista em tempo real.
-- Bloqueio por horário configurado no servidor.
+- Bloqueio por horário no servidor.
 - Proteção contra nomes duplicados.
 - Fechamento automático ao atingir o limite.
-- Fluxo pronto para produção com Supabase, Vercel e Render.
+- Banco em produção com Supabase/Postgres.
+- Publicação pronta com Vercel e Render.
 
 ## Próximos passos naturais
 
@@ -137,4 +169,4 @@ cd e2e && npm test
 
 ---
 
-Se você quiser, pode começar lendo o fluxo em [`backend/README.md`](./backend/README.md) e [`frontend/README.md`](./frontend/README.md) para entender cada camada por dentro.
+Se quiser, você pode seguir por [`backend/README.md`](./backend/README.md) e [`frontend/README.md`](./frontend/README.md) para entender cada camada por dentro.

@@ -1,0 +1,94 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">MeuRacha - listas de racha em tempo real</title>
+  <desc id="desc">Banner com campo estilizado, cards de lista e status de tempo real.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#06131F"/>
+      <stop offset="1" stop-color="#0B1F34"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="180" y1="120" x2="1040" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00B3FF"/>
+      <stop offset="1" stop-color="#32D27D"/>
+    </linearGradient>
+    <filter id="glow" x="0" y="0" width="1200" height="630" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0.22  0 0 1 0 0.28  0 0 0 0.65 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .title { font: 700 64px 'Segoe UI', Arial, sans-serif; fill: #ECF3FF; }
+      .subtitle { font: 500 26px 'Segoe UI', Arial, sans-serif; fill: #B7D0EA; }
+      .small { font: 600 20px 'Segoe UI', Arial, sans-serif; fill: #D6EFFF; letter-spacing: 0.06em; }
+      .chip { font: 700 18px 'Segoe UI', Arial, sans-serif; fill: #06131F; }
+      .cardTitle { font: 700 24px 'Segoe UI', Arial, sans-serif; fill: #ECF3FF; }
+      .cardText { font: 500 18px 'Segoe UI', Arial, sans-serif; fill: #A8C2DD; }
+      .panel { fill: rgba(8, 27, 46, 0.92); stroke: rgba(255,255,255,0.12); stroke-width: 1.5; }
+      .line { stroke: rgba(50, 210, 125, 0.55); stroke-width: 4; stroke-linecap: round; }
+      .dash { stroke-dasharray: 12 14; }
+      .pulse { transform-origin: center; animation: pulse 2.4s ease-in-out infinite; }
+      .float { animation: float 4s ease-in-out infinite; }
+      .float2 { animation: float 5s ease-in-out infinite reverse; }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.92; }
+        50% { transform: scale(1.06); opacity: 1; }
+      }
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+      }
+    </style>
+  </defs>
+
+  <rect width="1200" height="630" rx="36" fill="url(#bg)"/>
+  <circle cx="1040" cy="120" r="160" fill="#00B3FF" opacity="0.12" class="pulse" filter="url(#glow)"/>
+  <circle cx="260" cy="520" r="190" fill="#32D27D" opacity="0.08" class="pulse" filter="url(#glow)"/>
+
+  <rect x="60" y="60" width="1080" height="510" rx="28" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)"/>
+
+  <g class="float">
+    <rect x="90" y="100" width="240" height="52" rx="26" fill="url(#accent)"/>
+    <text x="210" y="135" text-anchor="middle" class="chip">LISTA EM TEMPO REAL</text>
+  </g>
+
+  <text x="92" y="225" class="title">MeuRacha</text>
+  <text x="92" y="275" class="subtitle">Seu racha organizado, justo e pronto para compartilhar.</text>
+  <text x="92" y="314" class="subtitle">Crie, abra, acompanhe e feche a lista sem depender do WhatsApp.</text>
+
+  <g transform="translate(88 372)">
+    <rect x="0" y="0" width="330" height="120" rx="22" class="panel"/>
+    <text x="24" y="40" class="cardTitle">Fluxo simples</text>
+    <text x="24" y="76" class="cardText">Criar racha • Compartilhar link • Entrar • Atualizar ao vivo</text>
+    <line x1="24" y1="92" x2="306" y2="92" class="line"/>
+  </g>
+
+  <g transform="translate(450 110)" class="float2">
+    <rect x="0" y="0" width="660" height="372" rx="26" class="panel"/>
+    <text x="32" y="52" class="cardTitle">Lista ao vivo</text>
+
+    <rect x="32" y="86" width="596" height="58" rx="14" fill="#102845" stroke="rgba(255,255,255,0.08)"/>
+    <circle cx="60" cy="115" r="12" fill="#32D27D"/>
+    <text x="88" y="121" class="cardText">Pedro</text>
+    <text x="578" y="121" text-anchor="end" class="cardText">1 / 18</text>
+
+    <rect x="32" y="158" width="596" height="58" rx="14" fill="#102845" stroke="rgba(255,255,255,0.08)"/>
+    <circle cx="60" cy="187" r="12" fill="#32D27D"/>
+    <text x="88" y="193" class="cardText">Joao</text>
+    <text x="578" y="193" text-anchor="end" class="cardText">2 / 18</text>
+
+    <rect x="32" y="230" width="596" height="58" rx="14" fill="#102845" stroke="rgba(255,255,255,0.08)"/>
+    <circle cx="60" cy="259" r="12" fill="#00B3FF"/>
+    <text x="88" y="265" class="cardText">Aguardando entrada</text>
+    <text x="578" y="265" text-anchor="end" class="cardText">tempo real</text>
+
+    <rect x="32" y="304" width="220" height="28" rx="14" fill="#32D27D"/>
+    <rect x="32" y="304" width="396" height="28" rx="14" fill="#1C3554" opacity="0.55"/>
+    <text x="272" y="325" class="cardText" fill="#06131F">ocupacao da lista</text>
+  </g>
+
+  <g transform="translate(90 540)">
+    <text class="small">Vercel + Render + Supabase = deploy pronto para o MVP</text>
+  </g>
+</svg>
