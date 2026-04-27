@@ -5,6 +5,10 @@ const path = require('path');
 const pdfsDir = path.join(__dirname, '..', '..', 'pdfs');
 if (!fs.existsSync(pdfsDir)) fs.mkdirSync(pdfsDir, { recursive: true });
 
+function getPosicaoLabel(posicao) {
+  return posicao === 'goleiro' ? 'Goleiro' : 'Jogador';
+}
+
 /**
  * Gera um PDF da lista final do racha.
  * Retorna uma Promise com o caminho do arquivo gerado.
@@ -35,13 +39,30 @@ function gerarPdfRacha({ racha, jogadores }) {
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown(1);
 
-    // Lista numerada
-    doc.fontSize(13);
-    jogadores.forEach((jogador, index) => {
-      const posicaoLabel = jogador.posicao === 'goleiro' ? '🧤 Goleiro' : '⚽ Jogador';
-      doc.text(`${String(index + 1).padStart(2, '0')}. ${jogador.nome} (${posicaoLabel})`);
+    // Titulares e Suplentes separados
+    const titulares = jogadores.filter((j) => !j.suplente);
+    const suplentes = jogadores.filter((j) => j.suplente);
+
+    if (titulares.length > 0) {
+      doc.fontSize(13).text('Titulares', { underline: true });
       doc.moveDown(0.3);
-    });
+      titulares.forEach((jogador, index) => {
+        const posicaoLabel = getPosicaoLabel(jogador.posicao);
+        doc.text(`${String(index + 1).padStart(2, '0')}. ${jogador.nome} (${posicaoLabel})`);
+        doc.moveDown(0.3);
+      });
+    }
+
+    if (suplentes.length > 0) {
+      doc.moveDown(0.6);
+      doc.fontSize(13).text('Suplentes', { underline: true });
+      doc.moveDown(0.3);
+      suplentes.forEach((jogador, index) => {
+        const posicaoLabel = getPosicaoLabel(jogador.posicao);
+        doc.text(`${String(index + 1).padStart(2, '0')}. ${jogador.nome} (${posicaoLabel})`);
+        doc.moveDown(0.3);
+      });
+    }
 
     doc.moveDown(2);
     doc.fontSize(10).fillColor('#666')

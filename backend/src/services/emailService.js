@@ -49,17 +49,22 @@ async function getTransporter() {
   return cachedTransporter;
 }
 
-async function enviarPdfRacha({ destinatario, racha, pdfPath }) {
+async function enviarPdfRacha({ destinatario, racha, pdfPath, tipo = 'final' }) {
   const transporter = await getTransporter();
 
   const info = await transporter.sendMail({
     from: config.smtp.from,
     to: destinatario,
-    subject: `Lista do racha "${racha.nome_dono}" fechada!`,
+    subject: tipo === 'titulares'
+      ? `Lista do racha "${racha.nome_dono}" - titulares fechados`
+      : `Lista do racha "${racha.nome_dono}" fechada (final)`,
     text:
       `Olá ${racha.nome_dono},\n\n` +
-      `A lista do seu racha foi fechada com ${racha.max_jogadores} jogadores.\n` +
-      `O PDF com a lista final está em anexo.\n\n` +
+      (tipo === 'titulares'
+        ? `A lista de titulares do seu racha foi preenchida com ${racha.max_jogadores} jogadores.\n` +
+          `Enviamos o PDF com os titulares; se você habilitou suplentes, eles serão enviados quando a lista de suplentes for completada.\n\n`
+        : `A lista final do seu racha foi fechada.\n`)
+      + `O PDF com a lista está em anexo.\n\n` +
       `Bom jogo!`,
     attachments: [
       {

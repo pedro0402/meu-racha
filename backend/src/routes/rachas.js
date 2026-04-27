@@ -31,7 +31,15 @@ function buildRouter(io) {
   // -------- Criar racha --------
   router.post('/', async (req, res) => {
     try {
-      const { nome_dono, email, telefone, data_abertura, max_jogadores } = req.body || {};
+      const {
+        nome_dono,
+        email,
+        telefone,
+        data_abertura,
+        max_jogadores,
+        suplentes_habilitados,
+        max_suplentes,
+      } = req.body || {};
       if (!nome_dono || !email || !telefone) {
         return res.status(400).json({
           error: 'CAMPOS_OBRIGATORIOS',
@@ -100,6 +108,8 @@ function buildRouter(io) {
         telefone: telefone.trim(),
         data_abertura: dataAberturaNorm,
         max_jogadores: maxJogadoresNorm,
+        suplentes_habilitados: Boolean(suplentes_habilitados),
+        max_suplentes: Number.isInteger(Number(max_suplentes)) ? Number(max_suplentes) : 0,
       });
 
       return res.status(201).json({
@@ -177,10 +187,17 @@ function buildRouter(io) {
       jogadores: resultado.jogadores,
     });
 
-    // Se atingiu o limite, dispara fluxo de fechamento (PDF + e-mail) em background.
-    if (resultado.atingiuLimite) {
-      fecharRacha(req.params.id, io).catch((err) => {
+    // Se atingiu o limite de titulares, dispara fechamento de titulares.
+    if (resultado.atingiuLimiteTitulares) {
+      fecharRacha(req.params.id, io, 'titulares').catch((err) => {
         console.error('[fecharRacha] erro:', err);
+      });
+    }
+
+    // Se atingiu o limite de suplentes, dispara fechamento final (titulares + suplentes).
+    if (resultado.atingiuLimiteSuplentes) {
+      fecharRacha(req.params.id, io, 'final').catch((err) => {
+        console.error('[fecharRacha final] erro:', err);
       });
     }
 
@@ -200,8 +217,8 @@ function buildRouter(io) {
  * - Envia por e-mail ao dono.
  * - Emite evento em tempo real.
  */
-async function fecharRacha(rachaId, io) {
-  const reservou = await rachaService.tentarReservarGeracaoPdf(rachaId);
+async function fecharRacha(rachaId, io, tipo = 'final') {
+  const reservou = await rachaService.tentarReservarGeracaoPdf(rachaId, tipo);
   if (!reservou) return;
 
   const racha = await rachaService.getRacha(rachaId);
@@ -214,6 +231,7 @@ async function fecharRacha(rachaId, io) {
       destinatario: racha.email,
       racha,
       pdfPath,
+      tipo,
     });
   } catch (err) {
     console.error('[email] falha ao enviar PDF:', err.message);
@@ -222,6 +240,7 @@ async function fecharRacha(rachaId, io) {
   io.to(`racha:${rachaId}`).emit('racha:fechado', {
     rachaId,
     total: jogadores.length,
+    tipo,
   });
 }
 

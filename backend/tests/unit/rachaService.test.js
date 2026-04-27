@@ -20,7 +20,8 @@ describe('criarRacha / getRacha', () => {
     const racha = await novoRacha();
     expect(racha.id).toMatch(/^[a-z2-9]{10}$/);
     expect(racha.nome_dono).toBe('João Organizador');
-    expect(racha.pdf_gerado).toBe(0);
+    expect(racha.pdf_gerado_titulares).toBe(0);
+    expect(racha.pdf_gerado_final).toBe(0);
     expect(racha.data_abertura).toBeNull();
     expect(racha.max_jogadores).toBe(18);
   });
@@ -47,7 +48,8 @@ describe('adicionarJogador', () => {
     expect(r.jogador.nome).toBe('Pedro');
     expect(r.jogador.posicao).toBe('jogador');
     expect(r.jogadores).toHaveLength(1);
-    expect(r.atingiuLimite).toBe(false);
+    expect(r.atingiuLimiteTitulares).toBe(false);
+    expect(r.atingiuLimiteSuplentes).toBe(false);
   });
 
   test('adiciona jogador como goleiro', async () => {
@@ -126,7 +128,29 @@ describe('adicionarJogador', () => {
     for (let i = 0; i < 3; i++) {
       ultimo = await rachaService.adicionarJogador(racha.id, `Jogador ${i}`);
     }
-    expect(ultimo.atingiuLimite).toBe(true);
+    expect(ultimo.atingiuLimiteTitulares).toBe(true);
+    expect(ultimo.atingiuLimiteSuplentes).toBe(false);
+  });
+
+  test('aceita suplentes quando habilitado e titulares já fecharam', async () => {
+    const racha = await novoRacha({ max_jogadores: 2, suplentes_habilitados: true, max_suplentes: 2 });
+
+    const primeiro = await rachaService.adicionarJogador(racha.id, 'Titular 1');
+    const segundo = await rachaService.adicionarJogador(racha.id, 'Titular 2');
+    const terceiro = await rachaService.adicionarJogador(racha.id, 'Suplente 1');
+    const quarto = await rachaService.adicionarJogador(racha.id, 'Suplente 2');
+
+    expect(primeiro.jogador.suplente).toBe(0);
+    expect(segundo.jogador.suplente).toBe(0);
+    expect(terceiro.jogador.suplente).toBe(1);
+    expect(quarto.jogador.suplente).toBe(1);
+
+    expect(segundo.atingiuLimiteTitulares).toBe(true);
+    expect(terceiro.atingiuLimiteTitulares).toBe(true);
+    expect(quarto.atingiuLimiteSuplentes).toBe(true);
+
+    const lista = await rachaService.listarJogadores(racha.id);
+    expect(lista.map((j) => j.suplente)).toEqual([0, 0, 1, 1]);
   });
 });
 
