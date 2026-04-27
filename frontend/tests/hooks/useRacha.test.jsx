@@ -26,7 +26,7 @@ beforeEach(() => {
 describe('useRacha', () => {
   test('carrega o racha e expõe o estado inicial', async () => {
     api.getRacha.mockResolvedValue({
-      racha: { id: 'abc', nome_dono: 'Pedro', data_abertura: null },
+      racha: { id: 'abc', nome_dono: 'Pedro', data_abertura: null, suplentes_habilitados: false, max_suplentes: 0 },
       jogadores: [{ id: 1, nome: 'A' }],
       maxJogadores: 18,
       listaAberta: true,
@@ -45,7 +45,7 @@ describe('useRacha', () => {
 
   test('atualiza jogadores ao receber evento jogadores:atualizados', async () => {
     api.getRacha.mockResolvedValue({
-      racha: { id: 'abc', nome_dono: 'Pedro' },
+      racha: { id: 'abc', nome_dono: 'Pedro', suplentes_habilitados: false, max_suplentes: 0 },
       jogadores: [],
       maxJogadores: 18,
       listaAberta: true,
@@ -64,10 +64,13 @@ describe('useRacha', () => {
     expect(result.current[0].jogadores[0].nome).toBe('Novo');
   });
 
-  test('marca fechado=true quando atinge maxJogadores', async () => {
+  test('mantém a lista aberta quando titulares fecham mas suplentes ainda estão disponíveis', async () => {
     api.getRacha.mockResolvedValue({
-      racha: { id: 'abc', nome_dono: 'Pedro' },
-      jogadores: [],
+      racha: { id: 'abc', nome_dono: 'Pedro', suplentes_habilitados: true, max_suplentes: 2 },
+      jogadores: [
+        { id: 1, nome: 'A', suplente: false },
+        { id: 2, nome: 'B', suplente: false },
+      ],
       maxJogadores: 2,
       listaAberta: true,
     });
@@ -75,18 +78,14 @@ describe('useRacha', () => {
     const { result } = renderHook(() => useRacha('abc'));
     await waitFor(() => expect(result.current[0].loading).toBe(false));
 
-    act(() => {
-      handlers.get('jogadores:atualizados')({
-        jogadores: [{ id: 1, nome: 'A' }, { id: 2, nome: 'B' }],
-      });
-    });
-
-    expect(result.current[0].fechado).toBe(true);
+    expect(result.current[0].fechado).toBe(false);
+    expect(result.current[0].suplentesHabilitados).toBe(true);
+    expect(result.current[0].titularesOcupados).toBe(2);
   });
 
   test('refresh re-busca o racha', async () => {
     api.getRacha.mockResolvedValue({
-      racha: { id: 'abc' },
+      racha: { id: 'abc', suplentes_habilitados: false, max_suplentes: 0 },
       jogadores: [],
       maxJogadores: 18,
       listaAberta: false,
@@ -95,7 +94,7 @@ describe('useRacha', () => {
     await waitFor(() => expect(result.current[0].loading).toBe(false));
 
     api.getRacha.mockResolvedValue({
-      racha: { id: 'abc' },
+      racha: { id: 'abc', suplentes_habilitados: false, max_suplentes: 0 },
       jogadores: [],
       maxJogadores: 18,
       listaAberta: true,

@@ -80,6 +80,8 @@ export default function CreateRachaPage() {
     max_jogadores: 18,
     data: '',
     hora: '',
+    suplentes_habilitados: false,
+    max_suplentes: 6,
   });
   const [criado, setCriado] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -123,6 +125,8 @@ export default function CreateRachaPage() {
         telefone: onlyDigits(form.telefone),
         max_jogadores: Number(form.max_jogadores),
         data_abertura: `${dataISO}T${form.hora}`,
+        suplentes_habilitados: form.suplentes_habilitados,
+        max_suplentes: form.suplentes_habilitados ? Number(form.max_suplentes) : 0,
       });
       setCriado(data);
     } catch (err) {
@@ -225,6 +229,28 @@ export default function CreateRachaPage() {
           required
         />
         <small className="muted">Mínimo de 2 jogadores para criar a lista.</small>
+      </label>
+
+      <label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={form.suplentes_habilitados}
+            onChange={(e) => setForm((f) => ({ ...f, suplentes_habilitados: e.target.checked }))}
+          />
+          Habilitar suplentes
+        </label>
+        {form.suplentes_habilitados && (
+          <select
+            value={form.max_suplentes}
+            onChange={(e) => setForm((f) => ({ ...f, max_suplentes: Number(e.target.value) }))}
+          >
+            {[1,2,3,4,5,6].map((n) => (
+              <option key={n} value={n}>{n} suplente{n !== 1 ? 's' : ''}</option>
+            ))}
+          </select>
+        )}
+        <small className="muted">Se habilitado, os suplentes são aceitos até o limite selecionado.</small>
       </label>
 
       <fieldset className="datetime-fieldset">

@@ -86,4 +86,37 @@ describe('<RachaPage />', () => {
       screen.getByText(/a lista deste racha expirou e não está mais disponível/i),
     ).toBeInTheDocument();
   });
+
+  test('mostra a entrada como suplente quando titulares estão completos e suplentes seguem abertos', () => {
+    mockUseRacha.mockReturnValue([
+      {
+        loading: false,
+        error: null,
+        expirado: false,
+        racha: { nome_dono: 'Pedro', suplentes_habilitados: true, max_suplentes: 2 },
+        jogadores: [
+          { id: 1, nome: 'A', suplente: false },
+          { id: 2, nome: 'B', suplente: false },
+        ],
+        maxJogadores: 2,
+        maxSuplentes: 2,
+        titularesOcupados: 2,
+        suplentesOcupados: 0,
+        suplentesHabilitados: true,
+        listaAberta: true,
+        fechado: false,
+      },
+      { refresh: mockRefresh },
+    ]);
+
+    render(<RachaPage />);
+
+    expect(screen.getByRole('heading', { name: /racha do pedro/i })).toBeInTheDocument();
+    expect(screen.getByText(/suplentes abertos/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/novas entradas serão registradas como suplente/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('button', { name: /entrar no racha/i })).toBeInTheDocument();
+  });
 });

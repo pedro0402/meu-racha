@@ -39,10 +39,12 @@ export default function RachaPage() {
     );
   }
 
-  const total = estado.jogadores.length;
-  const vagas = Math.max(estado.maxJogadores - total, 0);
-  const percentual = Math.min(100, Math.round((total / estado.maxJogadores) * 100));
+  const totalTitulares = estado.titularesOcupados;
+  const totalSuplentes = estado.suplentesOcupados;
+  const vagas = Math.max(estado.maxJogadores - estado.titularesOcupados, 0);
+  const percentual = Math.min(100, Math.round((estado.titularesOcupados / estado.maxJogadores) * 100));
   const { data_abertura } = estado.racha;
+  const suplentesDisponiveis = estado.suplentesHabilitados && estado.titularesOcupados >= estado.maxJogadores && estado.suplentesOcupados < estado.maxSuplentes;
 
   let statusLabel = 'Lista fechada';
   let statusClass = 'status-pill status-closed';
@@ -51,7 +53,7 @@ export default function RachaPage() {
     statusLabel = 'Lista completa';
     statusClass = 'status-pill status-full';
   } else if (estado.listaAberta) {
-    statusLabel = 'Lista aberta';
+    statusLabel = suplentesDisponiveis ? 'Suplentes abertos' : 'Lista aberta';
     statusClass = 'status-pill status-open';
   }
 
@@ -65,15 +67,24 @@ export default function RachaPage() {
 
         <div className="occupancy-box" aria-label="ocupacao da lista">
           <div className="occupancy-meta">
-            <strong>{total} / {estado.maxJogadores} jogadores</strong>
+            <strong>{totalTitulares} / {estado.maxJogadores} titulares</strong>
             <span>{percentual}% preenchida</span>
           </div>
           <div className="occupancy-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentual}>
             <span style={{ width: `${percentual}%` }} />
           </div>
           <p className="muted occupancy-note">
-            {vagas > 0 ? `${vagas} vaga(s) ainda disponível(is).` : 'Sem vagas disponíveis.'}
+            {vagas > 0
+              ? `${vagas} vaga(s) ainda disponível(is).`
+              : suplentesDisponiveis
+                ? 'Titulares completos. Novas entradas serão registradas como suplente.'
+                : 'Sem vagas disponíveis.'}
           </p>
+          {totalSuplentes > 0 && (
+            <p className="muted occupancy-note">
+              {totalSuplentes} suplente(s) na lista.
+            </p>
+          )}
         </div>
 
         {estado.fechado ? (

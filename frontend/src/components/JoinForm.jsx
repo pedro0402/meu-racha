@@ -32,10 +32,14 @@ export default function JoinForm({ rachaId }) {
     setSucesso('');
     setLoading(true);
     try {
-      await api.entrarNoRacha(rachaId, nome, posicao);
+      const res = await api.entrarNoRacha(rachaId, nome, posicao);
       setNome('');
       setPosicao('jogador');
-      setSucesso('Entrada confirmada. Boa sorte no racha!');
+      if (res?.jogador?.suplente) {
+        setSucesso('Você entrou como suplente. Caso haja desistência você poderá ser convocado.');
+      } else {
+        setSucesso('Entrada confirmada. Boa sorte no racha!');
+      }
     } catch (err) {
       setErro(mapJoinError(err));
     } finally {

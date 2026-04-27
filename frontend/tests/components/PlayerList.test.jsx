@@ -20,7 +20,8 @@ describe('<PlayerList />', () => {
     expect(screen.getByText('Pedro')).toBeInTheDocument();
     expect(screen.getByText('João')).toBeInTheDocument();
     expect(screen.getAllByText('vaga aberta')).toHaveLength(16);
-    expect(screen.getByText(/2 inscritos, 16 vagas restantes/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 titulares, 0 suplente/i)).toBeInTheDocument();
+    expect(screen.getByText(/16 vagas restantes/i)).toBeInTheDocument();
   });
 
   test('exibe posição do jogador e goleiro' , () => {
@@ -51,5 +52,22 @@ describe('<PlayerList />', () => {
     );
     expect(container.querySelectorAll('.filled')).toHaveLength(1);
     expect(container.querySelectorAll('.empty')).toHaveLength(1);
+  });
+
+  test('separa titulares e suplentes no resumo', () => {
+    render(
+      <PlayerList
+        max={2}
+        jogadores={[
+          { id: 1, nome: 'A', posicao: 'jogador', suplente: false },
+          { id: 2, nome: 'B', posicao: 'jogador', suplente: false },
+          { id: 3, nome: 'C', posicao: 'jogador', suplente: true },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText(/2 titulares, 1 suplente/i)).toBeInTheDocument();
+    expect(screen.getByText(/0 vagas restantes/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /suplentes/i })).toBeInTheDocument();
   });
 });

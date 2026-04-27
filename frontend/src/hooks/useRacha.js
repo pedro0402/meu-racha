@@ -16,24 +16,53 @@ export function useRacha(rachaId) {
     racha: null,
     jogadores: [],
     maxJogadores: 18,
+    maxSuplentes: 0,
+    titularesOcupados: 0,
+    suplentesOcupados: 0,
+    suplentesHabilitados: false,
     listaAberta: false,
     fechado: false,
     expirado: false,
   });
 
+  function buildState(data) {
+    const titulares = data.jogadores.filter((j) => !j.suplente);
+    const suplentes = data.jogadores.filter((j) => j.suplente);
+    const suplentesHabilitados = Boolean(data.racha?.suplentes_habilitados);
+    const maxSuplentes = Number(data.racha?.max_suplentes || 0);
+    const titularesOcupados = titulares.length;
+    const suplentesOcupados = suplentes.length;
+    const titularesCompletos = titularesOcupados >= data.maxJogadores;
+    const suplentesCompletos = !suplentesHabilitados || suplentesOcupados >= maxSuplentes;
+
+    return {
+      ...data,
+      titularesOcupados,
+      suplentesOcupados,
+      maxSuplentes,
+      suplentesHabilitados,
+      fechado: suplentesHabilitados ? (titularesCompletos && suplentesCompletos) : titularesCompletos,
+    };
+  }
+
   const carregar = useCallback(() => {
     return api
       .getRacha(rachaId)
       .then((data) => {
+        const nextState = buildState(data);
         setEstado((s) => ({
           ...s,
           loading: false,
           error: null,
-          racha: data.racha,
-          jogadores: data.jogadores,
-          maxJogadores: data.maxJogadores,
-          listaAberta: data.listaAberta,
-          fechado: data.jogadores.length >= data.maxJogadores,
+          racha: nextState.racha,
+          jogadores: nextState.jogadores,
+          maxJogadores: nextState.maxJogadores,
+          maxSuplentes: nextState.maxSuplentes,
+          titularesOcupados: nextState.titularesOcupados,
+          suplentesOcupados: nextState.suplentesOcupados,
+          suplentesHabilitados: nextState.suplentesHabilitados,
+          listaAberta: nextState.listaAberta,
+          fechado: nextState.fechado,
         }));
       })
       .catch((err) => {
@@ -68,7 +97,14 @@ export function useRacha(rachaId) {
       setEstado((s) => ({
         ...s,
         jogadores,
-        fechado: jogadores.length >= s.maxJogadores,
+        titularesOcupados: jogadores.filter((j) => !j.suplente).length,
+        suplentesOcupados: jogadores.filter((j) => j.suplente).length,
+        fechado: s.suplentesHabilitados
+          ? (
+            jogadores.filter((j) => !j.suplente).length >= s.maxJogadores
+            && jogadores.filter((j) => j.suplente).length >= s.maxSuplentes
+          )
+          : jogadores.filter((j) => !j.suplente).length >= s.maxJogadores,
       }));
     };
     const onFechado = () => {
