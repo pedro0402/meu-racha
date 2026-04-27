@@ -38,7 +38,8 @@ function gerarPdfRacha({ racha, jogadores }) {
     // Lista numerada
     doc.fontSize(13);
     jogadores.forEach((jogador, index) => {
-      doc.text(`${String(index + 1).padStart(2, '0')}. ${jogador.nome}`);
+      const posicaoLabel = jogador.posicao === 'goleiro' ? '🧤 Goleiro' : '⚽ Jogador';
+      doc.text(`${String(index + 1).padStart(2, '0')}. ${jogador.nome} (${posicaoLabel})`);
       doc.moveDown(0.3);
     });
 
