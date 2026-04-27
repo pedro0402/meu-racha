@@ -86,7 +86,7 @@ async function getRacha(id) {
 async function listarJogadores(rachaId) {
   if (!pg.isPostgresEnabled()) {
     return db.prepare(`
-      SELECT id, nome, data_entrada
+      SELECT id, nome, posicao, data_entrada
       FROM jogadores
       WHERE racha_id = ?
       ORDER BY id ASC
@@ -96,7 +96,7 @@ async function listarJogadores(rachaId) {
   await ensurePostgresInit();
   const res = await pg.query(
     `
-      SELECT id, nome, data_entrada
+      SELECT id, nome, posicao, data_entrada
       FROM jogadores
       WHERE racha_id = $1
       ORDER BY id ASC
@@ -121,14 +121,20 @@ async function contarJogadores(rachaId) {
  *  - existência do racha
  *  - limite de jogadores (atomicamente)
  *  - duplicidade de nome no mesmo racha (UNIQUE no banco)
+ *  - posição válida (goleiro ou jogador)
  *
  * Retorna { jogador, jogadores, atingiuLimite }.
  */
-async function adicionarJogador(rachaId, nomeOriginal) {
+async function adicionarJogador(rachaId, nomeOriginal, posicao = 'jogador') {
   const { nome, nomeNorm } = normalizeInputName(nomeOriginal);
 
+  // Validar posição
+  if (!['goleiro', 'jogador'].includes(posicao)) {
+    throw buildError('POSICAO_INVALIDA', 'Posição deve ser "goleiro" ou "jogador"');
+  }
+
   if (!pg.isPostgresEnabled()) {
-    const addJogadorTx = db.transaction((txRachaId, txNome, txNomeNorm) => {
+    const addJogadorTx = db.transaction((txRachaId, txNome, txNomeNorm, txPosicao) => {
       const racha = db.prepare('SELECT * FROM rachas WHERE id = ?').get(txRachaId);
       if (!racha) {
         throw buildError('NOT_FOUND', 'Racha não encontrado');
@@ -141,10 +147,11 @@ async function adicionarJogador(rachaId, nomeOriginal) {
       }
 
       try {
-        db.prepare('INSERT INTO jogadores (racha_id, nome, nome_norm) VALUES (?, ?, ?)').run(
+        db.prepare('INSERT INTO jogadores (racha_id, nome, nome_norm, posicao) VALUES (?, ?, ?, ?)').run(
           txRachaId,
           txNome,
           txNomeNorm,
+          txPosicao,
         );
       } catch (e) {
         if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -154,7 +161,7 @@ async function adicionarJogador(rachaId, nomeOriginal) {
       }
 
       const jogadores = db.prepare(`
-        SELECT id, nome, data_entrada
+        SELECT id, nome, posicao, data_entrada
         FROM jogadores
         WHERE racha_id = ?
         ORDER BY id ASC
@@ -167,7 +174,7 @@ async function adicionarJogador(rachaId, nomeOriginal) {
       };
     });
 
-    return addJogadorTx(rachaId, nome, nomeNorm);
+    return addJogadorTx(rachaId, nome, nomeNorm, posicao);
   }
 
   await ensurePostgresInit();
@@ -188,8 +195,8 @@ async function adicionarJogador(rachaId, nomeOriginal) {
 
     try {
       await tx.query(
-        'INSERT INTO jogadores (racha_id, nome, nome_norm) VALUES ($1, $2, $3)',
-        [rachaId, nome, nomeNorm],
+        'INSERT INTO jogadores (racha_id, nome, nome_norm, posicao) VALUES ($1, $2, $3, $4)',
+        [rachaId, nome, nomeNorm, posicao],
       );
     } catch (e) {
       if (e.code === '23505') {
@@ -200,7 +207,7 @@ async function adicionarJogador(rachaId, nomeOriginal) {
 
     const jogadoresRes = await tx.query(
       `
-        SELECT id, nome, data_entrada
+        SELECT id, nome, posicao, data_entrada
         FROM jogadores
         WHERE racha_id = $1
         ORDER BY id ASC
