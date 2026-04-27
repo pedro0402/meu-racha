@@ -284,7 +284,29 @@ describe('POST /api/rachas/:id/jogadores', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.jogador.nome).toBe('Pedro');
+    expect(res.body.jogador.posicao).toBe('jogador');
     expect(res.body.total).toBe(1);
+  });
+
+  test('insere jogador como goleiro', async () => {
+    const id = await criarRacha();
+    const res = await request(app)
+      .post(`/api/rachas/${id}/jogadores`)
+      .send({ nome: 'Pedro', posicao: 'goleiro' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.jogador.nome).toBe('Pedro');
+    expect(res.body.jogador.posicao).toBe('goleiro');
+    expect(res.body.total).toBe(1);
+  });
+
+  test('400 com posição inválida', async () => {
+    const id = await criarRacha();
+    const res = await request(app)
+      .post(`/api/rachas/${id}/jogadores`)
+      .send({ nome: 'Pedro', posicao: 'defensor' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('POSICAO_INVALIDA');
   });
 
   test('400 sem nome', async () => {

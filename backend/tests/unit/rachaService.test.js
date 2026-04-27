@@ -45,8 +45,22 @@ describe('adicionarJogador', () => {
     const racha = await novoRacha();
     const r = await rachaService.adicionarJogador(racha.id, 'Pedro');
     expect(r.jogador.nome).toBe('Pedro');
+    expect(r.jogador.posicao).toBe('jogador');
     expect(r.jogadores).toHaveLength(1);
     expect(r.atingiuLimite).toBe(false);
+  });
+
+  test('adiciona jogador como goleiro', async () => {
+    const racha = await novoRacha();
+    const r = await rachaService.adicionarJogador(racha.id, 'Pedro', 'goleiro');
+    expect(r.jogador.nome).toBe('Pedro');
+    expect(r.jogador.posicao).toBe('goleiro');
+    expect(r.jogadores).toHaveLength(1);
+  });
+
+  test('rejeita posição inválida', async () => {
+    const racha = await novoRacha();
+    await expect(rachaService.adicionarJogador(racha.id, 'Pedro', 'defensor')).rejects.toMatchObject({ code: 'POSICAO_INVALIDA' });
   });
 
   test('mantém ordem de chegada', async () => {
