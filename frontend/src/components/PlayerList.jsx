@@ -1,4 +1,4 @@
-export default function PlayerList({ jogadores, max }) {
+export default function PlayerList({ jogadores, max, suplentesHabilitados = false }) {
   const titulares = jogadores.filter((j) => !j.suplente);
   const suplentes = jogadores.filter((j) => j.suplente);
   const totalTitulares = titulares.length;
@@ -14,7 +14,9 @@ export default function PlayerList({ jogadores, max }) {
       <div className="card">
         <h3>Lista</h3>
         <p className="muted list-summary">
-          {totalTitulares} titulares, {suplentes.length} suplente(s).
+          {suplentesHabilitados
+            ? `${totalTitulares} titulares, ${suplentes.length} suplente(s).`
+            : `${totalTitulares} titulares.`}
         </p>
         <p className="muted list-summary">
           {Math.max(max - totalTitulares, 0)} vagas restantes.
@@ -40,7 +42,7 @@ export default function PlayerList({ jogadores, max }) {
         </ol>
       </div>
 
-      {suplentes.length > 0 && (
+      {suplentesHabilitados && suplentes.length > 0 && (
         <div className="card">
           <h3>Suplentes</h3>
           <p className="muted">{suplentes.length} suplente(s) na fila.</p>

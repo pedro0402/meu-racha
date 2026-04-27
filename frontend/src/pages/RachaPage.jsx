@@ -114,6 +114,7 @@ export default function RachaPage() {
       <PlayerList
         jogadores={estado.jogadores}
         max={estado.maxJogadores}
+        suplentesHabilitados={estado.suplentesHabilitados}
       />
     </div>
   );

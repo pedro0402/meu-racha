@@ -20,7 +20,8 @@ describe('<PlayerList />', () => {
     expect(screen.getByText('Pedro')).toBeInTheDocument();
     expect(screen.getByText('João')).toBeInTheDocument();
     expect(screen.getAllByText('vaga aberta')).toHaveLength(16);
-    expect(screen.getByText(/2 titulares, 0 suplente/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 titulares\./i)).toBeInTheDocument();
+    expect(screen.queryByText(/suplente/i)).toBeNull();
     expect(screen.getByText(/16 vagas restantes/i)).toBeInTheDocument();
   });
 
@@ -58,6 +59,7 @@ describe('<PlayerList />', () => {
     render(
       <PlayerList
         max={2}
+        suplentesHabilitados
         jogadores={[
           { id: 1, nome: 'A', posicao: 'jogador', suplente: false },
           { id: 2, nome: 'B', posicao: 'jogador', suplente: false },
