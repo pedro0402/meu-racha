@@ -86,6 +86,7 @@ export default function CreateRachaPage() {
   const [criado, setCriado] = useState(null);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
+  const [copiado, setCopiado] = useState(false);
   const aberturaPreview = formatAberturaPreview(form.data, form.hora);
 
   const update = (campo) => (e) => {
@@ -137,18 +138,32 @@ export default function CreateRachaPage() {
   }
 
   if (criado) {
+    async function copiarLink() {
+      await navigator.clipboard.writeText(criado.shareUrl);
+      setCopiado(true);
+      window.setTimeout(() => setCopiado(false), 1800);
+    }
+
     return (
       <div className="card">
         <h2>Racha criado!</h2>
         <p>Compartilhe o link abaixo com a galera:</p>
         <div className="share-box">
           <input readOnly value={criado.shareUrl} onFocus={(e) => e.target.select()} />
-          <button
-            className="btn"
-            onClick={() => navigator.clipboard.writeText(criado.shareUrl)}
-          >
-            Copiar
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              className="btn"
+              onClick={copiarLink}
+              type="button"
+            >
+              {copiado ? 'Copiado!' : 'Copiar'}
+            </button>
+            {copiado && (
+              <span className="muted" role="status" aria-live="polite">
+                Link copiado com sucesso.
+              </span>
+            )}
+          </div>
         </div>
         {criado.racha.data_abertura && (
           <p className="muted">

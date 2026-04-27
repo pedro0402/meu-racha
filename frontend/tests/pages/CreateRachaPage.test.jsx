@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const mockNavigate = vi.fn();
+let clipboardWriteTextMock;
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
@@ -19,6 +20,13 @@ import CreateRachaPage from '../../src/pages/CreateRachaPage';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clipboardWriteTextMock = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(window.navigator, 'clipboard', {
+    value: {
+      writeText: clipboardWriteTextMock,
+    },
+    configurable: true,
+  });
 });
 
 describe('<CreateRachaPage />', () => {
@@ -184,6 +192,37 @@ describe('<CreateRachaPage />', () => {
     await user.type(screen.getByLabelText(/hora/i), '12:00');
 
     expect(screen.getByText(/a lista será aberta em/i)).toBeInTheDocument();
+  });
+
+  test('copiar link mostra feedback visual de sucesso', async () => {
+    api.criarRacha.mockResolvedValue({
+      shareUrl: 'http://localhost:5173/racha/abc',
+      racha: { id: 'abc', data_abertura: null, max_jogadores: 10 },
+    });
+
+    const user = userEvent.setup();
+    render(<CreateRachaPage />);
+
+    await user.type(screen.getByLabelText(/seu nome/i), 'João');
+    await user.type(screen.getByLabelText(/^e-mail/i), 'joao@example.com');
+    await user.type(screen.getByLabelText(/telefone/i), '11988887777');
+    await user.clear(screen.getByLabelText(/máximo de jogadores/i));
+    await user.type(screen.getByLabelText(/máximo de jogadores/i), '10');
+    await user.type(screen.getByLabelText(/data/i), '31/12/2026');
+    await user.type(screen.getByLabelText(/hora/i), '12:00');
+
+    await user.click(screen.getByRole('button', { name: /criar racha/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copiar/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /copiar/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copiado!/i })).toBeInTheDocument();
+    });
+    expect(screen.getByRole('status')).toHaveTextContent(/link copiado com sucesso/i);
   });
 
   test('mostra erro amigável quando API retorna DATA_ABERTURA_PASSADA', async () => {
