@@ -28,10 +28,13 @@ function init() {
       email          TEXT NOT NULL,
       telefone       TEXT NOT NULL,
       max_jogadores  INTEGER NOT NULL DEFAULT 18,
+      suplentes_habilitados INTEGER NOT NULL DEFAULT 0,
+      max_suplentes  INTEGER NOT NULL DEFAULT 0,
       data_criacao   TEXT NOT NULL DEFAULT (datetime('now')),
       data_abertura  TEXT,
       expira_em      TEXT,
-      pdf_gerado     INTEGER NOT NULL DEFAULT 0
+      pdf_gerado_titulares INTEGER NOT NULL DEFAULT 0,
+      pdf_gerado_final INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS jogadores (
@@ -40,6 +43,7 @@ function init() {
       nome          TEXT NOT NULL,
       nome_norm     TEXT NOT NULL,
       posicao       TEXT DEFAULT 'jogador',
+      suplente      INTEGER NOT NULL DEFAULT 0,
       data_entrada  TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (racha_id) REFERENCES rachas(id) ON DELETE CASCADE,
       UNIQUE (racha_id, nome_norm)
@@ -59,10 +63,25 @@ function init() {
   if (!cols.some((c) => c.name === 'max_jogadores')) {
     db.exec(`ALTER TABLE rachas ADD COLUMN max_jogadores INTEGER NOT NULL DEFAULT 18`);
   }
+  if (!cols.some((c) => c.name === 'suplentes_habilitados')) {
+    db.exec(`ALTER TABLE rachas ADD COLUMN suplentes_habilitados INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!cols.some((c) => c.name === 'max_suplentes')) {
+    db.exec(`ALTER TABLE rachas ADD COLUMN max_suplentes INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!cols.some((c) => c.name === 'pdf_gerado_titulares')) {
+    db.exec(`ALTER TABLE rachas ADD COLUMN pdf_gerado_titulares INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!cols.some((c) => c.name === 'pdf_gerado_final')) {
+    db.exec(`ALTER TABLE rachas ADD COLUMN pdf_gerado_final INTEGER NOT NULL DEFAULT 0`);
+  }
 
   const jogadoresCols = db.prepare(`PRAGMA table_info(jogadores)`).all();
   if (!jogadoresCols.some((c) => c.name === 'posicao')) {
     db.exec(`ALTER TABLE jogadores ADD COLUMN posicao TEXT DEFAULT 'jogador'`);
+  }
+  if (!jogadoresCols.some((c) => c.name === 'suplente')) {
+    db.exec(`ALTER TABLE jogadores ADD COLUMN suplente INTEGER NOT NULL DEFAULT 0`);
   }
 }
 
