@@ -23,9 +23,9 @@ export const api = {
 
   getRacha: (id) => request(`/api/rachas/${id}`),
 
-  entrarNoRacha: (id, nome) =>
+  entrarNoRacha: (id, nome, posicao = 'jogador') =>
     request(`/api/rachas/${id}/jogadores`, {
       method: 'POST',
-      body: { nome },
+      body: { nome, posicao },
     }),
 };
