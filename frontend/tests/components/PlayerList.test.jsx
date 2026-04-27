@@ -7,7 +7,10 @@ describe('<PlayerList />', () => {
     render(
       <PlayerList
         max={18}
-        jogadores={[{ id: 1, nome: 'Pedro' }, { id: 2, nome: 'João' }]}
+        jogadores={[
+          { id: 1, nome: 'Pedro', posicao: 'jogador' },
+          { id: 2, nome: 'João', posicao: 'goleiro' },
+        ]}
       />,
     );
 
@@ -20,8 +23,23 @@ describe('<PlayerList />', () => {
     expect(screen.getByText(/2 inscritos, 16 vagas restantes/i)).toBeInTheDocument();
   });
 
+  test('exibe posição do jogador e goleiro' , () => {
+    render(
+      <PlayerList
+        max={3}
+        jogadores={[
+          { id: 1, nome: 'Pedro', posicao: 'jogador' },
+          { id: 2, nome: 'João', posicao: 'goleiro' },
+        ]}
+      />,
+    );
+    
+    expect(screen.getByText(/Jogador/)).toBeInTheDocument();
+    expect(screen.getByText(/Goleiro/)).toBeInTheDocument();
+  });
+
   test('numera os slots começando em 01', () => {
-    render(<PlayerList max={3} jogadores={[{ id: 1, nome: 'A' }]} />);
+    render(<PlayerList max={3} jogadores={[{ id: 1, nome: 'A', posicao: 'jogador' }]} />);
     expect(screen.getByText('01')).toBeInTheDocument();
     expect(screen.getByText('02')).toBeInTheDocument();
     expect(screen.getByText('03')).toBeInTheDocument();
@@ -29,7 +47,7 @@ describe('<PlayerList />', () => {
 
   test('marca slots preenchidos com a classe "filled"', () => {
     const { container } = render(
-      <PlayerList max={2} jogadores={[{ id: 1, nome: 'A' }]} />,
+      <PlayerList max={2} jogadores={[{ id: 1, nome: 'A', posicao: 'jogador' }]} />,
     );
     expect(container.querySelectorAll('.filled')).toHaveLength(1);
     expect(container.querySelectorAll('.empty')).toHaveLength(1);
