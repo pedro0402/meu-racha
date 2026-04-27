@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS jogadores (
   racha_id      TEXT NOT NULL REFERENCES rachas(id) ON DELETE CASCADE,
   nome          TEXT NOT NULL,
   nome_norm     TEXT NOT NULL,
+  posicao       TEXT DEFAULT 'jogador',
   data_entrada  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (racha_id, nome_norm)
 );

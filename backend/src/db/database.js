@@ -39,6 +39,7 @@ function init() {
       racha_id      TEXT NOT NULL,
       nome          TEXT NOT NULL,
       nome_norm     TEXT NOT NULL,
+      posicao       TEXT DEFAULT 'jogador',
       data_entrada  TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (racha_id) REFERENCES rachas(id) ON DELETE CASCADE,
       UNIQUE (racha_id, nome_norm)
@@ -57,6 +58,11 @@ function init() {
   }
   if (!cols.some((c) => c.name === 'max_jogadores')) {
     db.exec(`ALTER TABLE rachas ADD COLUMN max_jogadores INTEGER NOT NULL DEFAULT 18`);
+  }
+
+  const jogadoresCols = db.prepare(`PRAGMA table_info(jogadores)`).all();
+  if (!jogadoresCols.some((c) => c.name === 'posicao')) {
+    db.exec(`ALTER TABLE jogadores ADD COLUMN posicao TEXT DEFAULT 'jogador'`);
   }
 }
 
