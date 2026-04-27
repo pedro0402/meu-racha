@@ -10,6 +10,7 @@ function mapJoinError(err) {
     LISTA_FECHADA: 'A lista ainda nao esta aberta para entradas.',
     LISTA_EXPIRADA: 'Esta lista expirou e nao aceita novas entradas.',
     RACHA_NAO_ENCONTRADO: 'Nao encontramos esse racha. Confira o link.',
+    POSICAO_INVALIDA: 'Escolha uma posição válida (goleiro ou jogador).',
   };
 
   if (err?.code && byCode[err.code]) return byCode[err.code];
@@ -18,6 +19,7 @@ function mapJoinError(err) {
 
 export default function JoinForm({ rachaId }) {
   const [nome, setNome] = useState('');
+  const [posicao, setPosicao] = useState('jogador');
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,8 +32,9 @@ export default function JoinForm({ rachaId }) {
     setSucesso('');
     setLoading(true);
     try {
-      await api.entrarNoRacha(rachaId, nome);
+      await api.entrarNoRacha(rachaId, nome, posicao);
       setNome('');
+      setPosicao('jogador');
       setSucesso('Entrada confirmada. Boa sorte no racha!');
     } catch (err) {
       setErro(mapJoinError(err));
@@ -55,6 +58,20 @@ export default function JoinForm({ rachaId }) {
           maxLength={60}
           required
         />
+      </label>
+      <label>
+        Posição
+        <select
+          value={posicao}
+          onChange={(e) => {
+            setPosicao(e.target.value);
+            if (sucesso) setSucesso('');
+          }}
+          required
+        >
+          <option value="jogador">Jogador</option>
+          <option value="goleiro">Goleiro</option>
+        </select>
       </label>
       {erro && <div className="alert alert-error">{erro}</div>}
       {sucesso && <div className="alert alert-success" role="status">{sucesso}</div>}
