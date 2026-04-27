@@ -144,20 +144,29 @@ function buildRouter(io) {
 
   // -------- Entrar na lista --------
   router.post('/:id/jogadores', validateTime, async (req, res) => {
-    const { nome } = req.body || {};
+    const { nome, posicao } = req.body || {};
     if (typeof nome !== 'string' || !nome.trim()) {
       return res.status(400).json({ error: 'NOME_OBRIGATORIO' });
     }
 
+    const posicaoNorm = posicao ? String(posicao).toLowerCase() : 'jogador';
+    if (!['goleiro', 'jogador'].includes(posicaoNorm)) {
+      return res.status(400).json({
+        error: 'POSICAO_INVALIDA',
+        message: 'Posição deve ser "goleiro" ou "jogador".',
+      });
+    }
+
     let resultado;
     try {
-      resultado = await rachaService.adicionarJogador(req.params.id, nome);
+      resultado = await rachaService.adicionarJogador(req.params.id, nome, posicaoNorm);
     } catch (e) {
       const map = {
         NOT_FOUND: [404, 'Racha não encontrado'],
         FULL: [409, 'Lista cheia'],
         DUPLICATE: [409, 'Esse nome já está na lista'],
         INVALID_NAME: [400, 'Nome inválido'],
+        POSICAO_INVALIDA: [400, 'Posição inválida'],
       };
       const [status, msg] = map[e.code] || [500, 'Erro interno'];
       return res.status(status).json({ error: e.code || 'INTERNAL', message: msg });
