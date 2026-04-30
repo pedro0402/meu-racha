@@ -49,6 +49,12 @@ async function criarRacha({
   suplentes_habilitados = false,
   max_suplentes = 0,
 }) {
+  // Coluna `email` no Postgres é NOT NULL: sempre persistir string ('' se vazio), nunca NULL.
+  const emailParaDb =
+    email !== undefined && email !== null && String(email).trim() !== ''
+      ? String(email).trim()
+      : '';
+
   const id = genId();
   const expiraEm = data_abertura
     ? addHoursToLocalString(data_abertura, config.listaExpiracaoHoras)
@@ -62,7 +68,7 @@ async function criarRacha({
     stmtInsertRacha.run(
       id,
       nome_dono,
-      email,
+      emailParaDb,
       telefone,
       data_abertura,
       expiraEm,
@@ -82,7 +88,7 @@ async function criarRacha({
     [
       id,
       nome_dono,
-      email,
+      emailParaDb,
       telefone,
       data_abertura,
       expiraEm,
