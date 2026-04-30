@@ -122,10 +122,6 @@ export default function JoinForm({ rachaId }) {
 
   return (
     <form onSubmit={onSubmit} className="join-form">
-      <p className="muted join-form-privacy" style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>
-        Para evitar várias inscrições no mesmo aparelho, usamos um convite descartável e um identificador
-        anônimo do navegador (sem login).
-      </p>
       <label>
         Seu nome
         <input

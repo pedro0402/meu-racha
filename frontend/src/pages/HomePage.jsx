@@ -5,7 +5,6 @@ export default function HomePage() {
     <div className="home-stack">
       <section className="card hero hero-split">
         <div>
-          <p className="hero-kicker">MVP pronto para organizar seu racha</p>
           <h1>Sua lista em tempo real, sem mensagem perdida no grupo.</h1>
           <p>
             Crie o racha, compartilhe o link e acompanhe as vagas ao vivo.
