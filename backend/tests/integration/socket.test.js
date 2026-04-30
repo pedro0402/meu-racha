@@ -4,6 +4,8 @@ jest.mock('../../src/services/pdfService', () => ({
 
 const { createApp } = require('../../src/app');
 const db = require('../../src/db/database');
+const crypto = require('crypto');
+const entradaTokenService = require('../../src/services/entradaTokenService');
 const rachaService = require('../../src/services/rachaService');
 const { nowAsLocalString } = require('../../src/utils/time');
 const { io: ioClient } = require('socket.io-client');
@@ -49,12 +51,30 @@ function esperaEvento(socket, evento, ms = 2000) {
   });
 }
 
+async function entrarViaService(rachaId, nome, visitorSeed) {
+  const visitorHash = crypto.createHash('sha256').update(`svc-${visitorSeed}`).digest('hex');
+  const { token } = await entradaTokenService.emitirTokenEntrada(rachaId);
+  return rachaService.adicionarJogador(rachaId, nome, 'jogador', { entradaToken: token, visitorHash });
+}
+
+async function postJogadorHttp(rachaId, nome, visitorSeed) {
+  const visitorHash = crypto.createHash('sha256').update(`http-${visitorSeed}`).digest('hex');
+  const gr = await request(httpAddress).get(`/api/rachas/${rachaId}/token-entrada`);
+  expect(gr.status).toBe(200);
+  return request(httpAddress).post(`/api/rachas/${rachaId}/jogadores`).send({
+    nome,
+    posicao: 'jogador',
+    entrada_token: gr.body.token,
+    visitor_hash: visitorHash,
+  });
+}
+
 describe('Socket.IO', () => {
   test('cliente recebe lista atual ao entrar na sala do racha', async () => {
     const racha = await rachaService.criarRacha({
       nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(),
     });
-    await rachaService.adicionarJogador(racha.id, 'Existente');
+    await entrarViaService(racha.id, 'Existente', 'e1');
 
     const socket = novoCliente();
     await new Promise((r) => socket.on('connect', r));
@@ -80,9 +100,7 @@ describe('Socket.IO', () => {
 
     const promiseUpdate = esperaEvento(observador, 'jogadores:atualizados');
 
-    await request(httpAddress)
-      .post(`/api/rachas/${racha.id}/jogadores`)
-      .send({ nome: 'Novo Jogador' });
+    await postJogadorHttp(racha.id, 'Novo Jogador', 'nj');
 
     const payload = await promiseUpdate;
     expect(payload.jogadores.map((j) => j.nome)).toContain('Novo Jogador');
@@ -95,7 +113,7 @@ describe('Socket.IO', () => {
       nome_dono: 'Pedro', email: 'p@x.com', telefone: '11', data_abertura: nowAsLocalString(), max_jogadores: 3,
     });
     for (let i = 0; i < 2; i++) {
-      await rachaService.adicionarJogador(racha.id, `J${i}`);
+      await entrarViaService(racha.id, `J${i}`, `pre-${i}`);
     }
 
     const observador = novoCliente();
@@ -105,9 +123,7 @@ describe('Socket.IO', () => {
 
     const promiseFechado = esperaEvento(observador, 'racha:fechado');
 
-    await request(httpAddress)
-      .post(`/api/rachas/${racha.id}/jogadores`)
-      .send({ nome: 'Ultimo' });
+    await postJogadorHttp(racha.id, 'Ultimo', 'ult');
 
     const payload = await promiseFechado;
     expect(payload.rachaId).toBe(racha.id);

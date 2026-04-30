@@ -4,6 +4,7 @@ jest.mock('../../src/services/pdfService', () => ({
 }));
 
 const request = require('supertest');
+const crypto = require('crypto');
 const { createApp } = require('../../src/app');
 const config = require('../../src/config');
 const db = require('../../src/db/database');
@@ -60,6 +61,27 @@ function corpoCriacao(extra = {}) {
     max_jogadores: 18,
     ...extra,
   };
+}
+
+/** POST /jogadores com token + visitor_hash (fluxo real do cliente). */
+async function postJogador(app, rachaId, nome, options = {}) {
+  const posicao = options.posicao || 'jogador';
+  const visitorHash =
+    options.visitorHash ||
+    crypto.createHash('sha256').update(options.visitorSeed || `vh-${nome}-${options._seed ?? ''}`).digest('hex');
+
+  const gr = await request(app).get(`/api/rachas/${rachaId}/token-entrada`);
+  expect(gr.status).toBe(200);
+  expect(gr.body.token).toBeTruthy();
+
+  return request(app)
+    .post(`/api/rachas/${rachaId}/jogadores`)
+    .send({
+      nome,
+      posicao,
+      entrada_token: gr.body.token,
+      visitor_hash: visitorHash,
+    });
 }
 
 describe('POST /api/rachas', () => {
@@ -292,9 +314,7 @@ describe('POST /api/rachas/:id/jogadores', () => {
 
   test('insere jogador e devolve total', async () => {
     const id = await criarRacha();
-    const res = await request(app)
-      .post(`/api/rachas/${id}/jogadores`)
-      .send({ nome: 'Pedro' });
+    const res = await postJogador(app, id, 'Pedro');
 
     expect(res.status).toBe(201);
     expect(res.body.jogador.nome).toBe('Pedro');
@@ -304,9 +324,7 @@ describe('POST /api/rachas/:id/jogadores', () => {
 
   test('insere jogador como goleiro', async () => {
     const id = await criarRacha();
-    const res = await request(app)
-      .post(`/api/rachas/${id}/jogadores`)
-      .send({ nome: 'Pedro', posicao: 'goleiro' });
+    const res = await postJogador(app, id, 'Pedro', { posicao: 'goleiro' });
 
     expect(res.status).toBe(201);
     expect(res.body.jogador.nome).toBe('Pedro');
@@ -316,9 +334,16 @@ describe('POST /api/rachas/:id/jogadores', () => {
 
   test('400 com posição inválida', async () => {
     const id = await criarRacha();
+    const gr = await request(app).get(`/api/rachas/${id}/token-entrada`);
+    expect(gr.status).toBe(200);
     const res = await request(app)
       .post(`/api/rachas/${id}/jogadores`)
-      .send({ nome: 'Pedro', posicao: 'defensor' });
+      .send({
+        nome: 'Pedro',
+        posicao: 'defensor',
+        entrada_token: gr.body.token,
+        visitor_hash: crypto.createHash('sha256').update('vh-pos').digest('hex'),
+      });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('POSICAO_INVALIDA');
   });
@@ -332,25 +357,28 @@ describe('POST /api/rachas/:id/jogadores', () => {
 
   test('409 quando o nome é duplicado', async () => {
     const id = await criarRacha();
-    await request(app).post(`/api/rachas/${id}/jogadores`).send({ nome: 'Pedro' });
+    await postJogador(app, id, 'Pedro', { visitorSeed: 'p1' });
 
-    const res = await request(app)
-      .post(`/api/rachas/${id}/jogadores`)
-      .send({ nome: 'PEDRO' });
+    const res = await postJogador(app, id, 'PEDRO', { visitorSeed: 'p2' });
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('DUPLICATE');
+  });
+
+  test('409 VISITOR_JA_INSCRITO quando o mesmo visitante tenta outro nome', async () => {
+    const id = await criarRacha();
+    await postJogador(app, id, 'Pedro', { visitorSeed: 'same-device' });
+
+    const res = await postJogador(app, id, 'Maria', { visitorSeed: 'same-device' });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('VISITOR_JA_INSCRITO');
   });
 
   test('409 quando lista está cheia', async () => {
     const id = await criarRacha({ max_jogadores: 3 });
     for (let i = 0; i < 3; i++) {
-      await request(app)
-        .post(`/api/rachas/${id}/jogadores`)
-        .send({ nome: `J${i}` });
+      await postJogador(app, id, `J${i}`, { visitorSeed: `slot-${i}` });
     }
-    const res = await request(app)
-      .post(`/api/rachas/${id}/jogadores`)
-      .send({ nome: 'Atrasado' });
+    const res = await postJogador(app, id, 'Atrasado', { visitorSeed: 'late' });
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('FULL');
   });
@@ -390,9 +418,7 @@ describe('POST /api/rachas/:id/jogadores', () => {
   test('ao atingir o limite configurado, dispara geração de PDF UMA ÚNICA VEZ', async () => {
     const id = await criarRacha({ max_jogadores: 4 });
     for (let i = 0; i < 4; i++) {
-      await request(app)
-        .post(`/api/rachas/${id}/jogadores`)
-        .send({ nome: `J${i}` });
+      await postJogador(app, id, `J${i}`, { visitorSeed: `pdf-${i}` });
     }
 
     // O fluxo de fechamento é assíncrono (background). Aguardamos os mocks.
@@ -400,5 +426,26 @@ describe('POST /api/rachas/:id/jogadores', () => {
     await new Promise((r) => setImmediate(r));
 
     expect(gerarPdfRacha).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('GET /api/rachas/:id/token-entrada', () => {
+  test('200 devolve token descartável quando a lista está aberta', async () => {
+    const criado = await request(app).post('/api/rachas').send(corpoCriacao());
+    const id = criado.body.racha.id;
+    const res = await request(app).get(`/api/rachas/${id}/token-entrada`);
+    expect(res.status).toBe(200);
+    expect(res.body.token).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(res.body.expiraEm).toBeTruthy();
+  });
+
+  test('403 quando lista fechada (data_abertura futura)', async () => {
+    const criado = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ data_abertura: '2030-01-01T12:00' }));
+    const id = criado.body.racha.id;
+    const res = await request(app).get(`/api/rachas/${id}/token-entrada`);
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('LISTA_FECHADA');
   });
 });
