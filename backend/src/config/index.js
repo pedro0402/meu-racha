@@ -34,6 +34,8 @@ const config = {
   diaPermitido: parseInt(process.env.DIA_PERMITIDO || '0', 10),
   horaMinima: parseInt(process.env.HORA_MINIMA || '12', 10),
   timezone: process.env.TIMEZONE || 'America/Sao_Paulo',
+  /** Tempo de vida do token descartável para entrar na lista (GET …/token-entrada). Default 15 min. */
+  entradaTokenTtlMs: parseInt(process.env.ENTRADA_TOKEN_TTL_MS || '900000', 10),
 };
 
 module.exports = config;

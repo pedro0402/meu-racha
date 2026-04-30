@@ -1,5 +1,6 @@
 const express = require('express');
 const rachaService = require('../services/rachaService');
+const entradaTokenService = require('../services/entradaTokenService');
 const { gerarPdfRacha, getPdfPathForRacha, arquivoPdfExiste } = require('../services/pdfService');
 const fs = require('fs');
 const validateTime = require('../middleware/validateTime');
@@ -167,6 +168,21 @@ function buildRouter(io) {
     }
   });
 
+  // -------- Token descartável para entrar na lista (uso único; pareado com visitor_hash no POST) --------
+  router.get('/:id/token-entrada', async (req, res) => {
+    try {
+      const racha = await rachaService.getRacha(req.params.id);
+      const bloqueio = validateTime.avaliarEntradaNaLista(racha);
+      if (bloqueio) return res.status(bloqueio.status).json(bloqueio.payload);
+
+      const { token, expiraEm } = await entradaTokenService.emitirTokenEntrada(req.params.id);
+      return res.json({ token, expiraEm });
+    } catch (err) {
+      console.error('[GET /api/rachas/:id/token-entrada] erro:', err);
+      return res.status(500).json({ error: 'INTERNAL', message: 'Erro interno' });
+    }
+  });
+
   // -------- Buscar racha + lista --------
   router.get('/:id', async (req, res) => {
     try {
@@ -201,7 +217,7 @@ function buildRouter(io) {
 
   // -------- Entrar na lista --------
   router.post('/:id/jogadores', validateTime, async (req, res) => {
-    const { nome, posicao } = req.body || {};
+    const { nome, posicao, entrada_token: entradaTokenBody, visitor_hash: visitorHashBody } = req.body || {};
     if (typeof nome !== 'string' || !nome.trim()) {
       return res.status(400).json({ error: 'NOME_OBRIGATORIO' });
     }
@@ -216,7 +232,10 @@ function buildRouter(io) {
 
     let resultado;
     try {
-      resultado = await rachaService.adicionarJogador(req.params.id, nome, posicaoNorm);
+      resultado = await rachaService.adicionarJogador(req.params.id, nome, posicaoNorm, {
+        entradaToken: entradaTokenBody,
+        visitorHash: visitorHashBody,
+      });
     } catch (e) {
       const map = {
         NOT_FOUND: [404, 'Racha não encontrado'],
@@ -224,6 +243,15 @@ function buildRouter(io) {
         DUPLICATE: [409, 'Esse nome já está na lista'],
         INVALID_NAME: [400, 'Nome inválido'],
         POSICAO_INVALIDA: [400, 'Posição inválida'],
+        TOKEN_OBRIGATORIO: [400, 'Token de entrada ausente. Atualize a página.'],
+        VISITOR_HASH_INVALIDO: [400, 'Identificador de visitante inválido. Atualize a página.'],
+        TOKEN_INVALIDO: [403, 'Token de entrada inválido. Atualize a página.'],
+        TOKEN_EXPIRADO: [403, 'O token de entrada expirou. Atualize a página e tente de novo.'],
+        TOKEN_JA_USADO: [409, 'Este token já foi usado. Atualize a página.'],
+        VISITOR_JA_INSCRITO: [
+          409,
+          'Já há uma inscrição nesta lista a partir deste aparelho.',
+        ],
       };
       const [status, msg] = map[e.code] || [500, 'Erro interno'];
       return res.status(status).json({ error: e.code || 'INTERNAL', message: msg });

@@ -4,6 +4,7 @@ const pg = require('../db/postgres');
 const config = require('../config');
 const { normalizeName } = require('../utils/normalize');
 const { addHoursToLocalString } = require('../utils/time');
+const { normalizeVisitorHash, isValidVisitorHash } = require('../utils/visitorHash');
 
 /**
  * Gera um ID curto e amigável para o link compartilhável.
@@ -145,15 +146,59 @@ async function contarJogadores(rachaId) {
 }
 
 /**
+ * Valida token de entrada e bloqueia visitor_hash duplicado no mesmo racha (SQLite).
+ */
+function validarTokenEVisitanteSqlite(txRachaId, txToken, txVisitorHash) {
+  const row = db.prepare('SELECT * FROM entrada_tokens WHERE token = ? AND racha_id = ?').get(
+    txToken,
+    txRachaId,
+  );
+  if (!row) {
+    throw buildError('TOKEN_INVALIDO', 'Token de entrada inválido ou inexistente.');
+  }
+  if (row.usado_em) {
+    throw buildError('TOKEN_JA_USADO', 'Este token já foi utilizado.');
+  }
+  if (new Date(row.expira_em) <= new Date()) {
+    throw buildError('TOKEN_EXPIRADO', 'O token de entrada expirou. Atualize a página e tente de novo.');
+  }
+
+  const jaVisitante = db
+    .prepare('SELECT 1 AS x FROM jogadores WHERE racha_id = ? AND visitor_hash = ?')
+    .get(txRachaId, txVisitorHash);
+  if (jaVisitante) {
+    throw buildError(
+      'VISITOR_JA_INSCRITO',
+      'Já há uma inscrição nesta lista a partir deste aparelho.',
+    );
+  }
+}
+
+/**
  * Adiciona um jogador respeitando:
  *  - existência do racha
+ *  - token de entrada descartável (uso único)
+ *  - no máximo uma inscrição por visitor_hash por racha
  *  - limite de jogadores (atomicamente)
  *  - duplicidade de nome no mesmo racha (UNIQUE no banco)
  *  - posição válida (goleiro ou jogador)
  *
- * Retorna { jogador, jogadores, atingiuLimite }.
+ * opts: { entradaToken: string, visitorHash: string } — obrigatório na API.
+ *
+ * Retorna { jogador, jogadores, atingiuLimiteTitulares, atingiuLimiteSuplentes }.
  */
-async function adicionarJogador(rachaId, nomeOriginal, posicao = 'jogador') {
+async function adicionarJogador(rachaId, nomeOriginal, posicao = 'jogador', opts = {}) {
+  const entradaToken = opts?.entradaToken;
+  const visitorHashRaw = opts?.visitorHash;
+  const visitorHash = visitorHashRaw ? normalizeVisitorHash(visitorHashRaw) : '';
+
+  if (!entradaToken || typeof entradaToken !== 'string' || !String(entradaToken).trim()) {
+    throw buildError('TOKEN_OBRIGATORIO', 'Token de entrada ausente.');
+  }
+  if (!isValidVisitorHash(visitorHash)) {
+    throw buildError('VISITOR_HASH_INVALIDO', 'Identificador de visitante inválido.');
+  }
+
   const { nome, nomeNorm } = normalizeInputName(nomeOriginal);
 
   // Validar posição
@@ -161,8 +206,12 @@ async function adicionarJogador(rachaId, nomeOriginal, posicao = 'jogador') {
     throw buildError('POSICAO_INVALIDA', 'Posição deve ser "goleiro" ou "jogador"');
   }
 
+  const txToken = String(entradaToken).trim();
+
   if (!pg.isPostgresEnabled()) {
-    const addJogadorTx = db.transaction((txRachaId, txNome, txNomeNorm, txPosicao) => {
+    const addJogadorTx = db.transaction((txRachaId, txNome, txNomeNorm, txPosicao, tok, vHash) => {
+      validarTokenEVisitanteSqlite(txRachaId, tok, vHash);
+
       const racha = db.prepare('SELECT * FROM rachas WHERE id = ?').get(txRachaId);
       if (!racha) {
         throw buildError('NOT_FOUND', 'Racha não encontrado');
@@ -184,19 +233,21 @@ async function adicionarJogador(rachaId, nomeOriginal, posicao = 'jogador') {
       }
 
       try {
-        db.prepare('INSERT INTO jogadores (racha_id, nome, nome_norm, posicao, suplente) VALUES (?, ?, ?, ?, ?)').run(
-          txRachaId,
-          txNome,
-          txNomeNorm,
-          txPosicao,
-          inserirComoSuplente ? 1 : 0,
-        );
+        db.prepare(
+          'INSERT INTO jogadores (racha_id, nome, nome_norm, posicao, suplente, visitor_hash) VALUES (?, ?, ?, ?, ?, ?)',
+        ).run(txRachaId, txNome, txNomeNorm, txPosicao, inserirComoSuplente ? 1 : 0, vHash);
       } catch (e) {
         if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-          throw buildError('DUPLICATE', 'Esse nome já está na lista');
+          const msg = String(e.message || '');
+          if (msg.includes('nome_norm')) {
+            throw buildError('DUPLICATE', 'Esse nome já está na lista');
+          }
+          throw buildError('VISITOR_JA_INSCRITO', 'Já há uma inscrição nesta lista a partir deste aparelho.');
         }
         throw e;
       }
+
+      db.prepare('UPDATE entrada_tokens SET usado_em = ? WHERE token = ?').run(new Date().toISOString(), tok);
 
       const jogadores = db.prepare(`
         SELECT id, nome, posicao, suplente, data_entrada
@@ -216,12 +267,41 @@ async function adicionarJogador(rachaId, nomeOriginal, posicao = 'jogador') {
       };
     });
 
-    return addJogadorTx(rachaId, nome, nomeNorm, posicao);
+    return addJogadorTx(rachaId, nome, nomeNorm, posicao, txToken, visitorHash);
   }
 
   await ensurePostgresInit();
 
   return pg.withTransaction(async (tx) => {
+    const tokRes = await tx.query(
+      `SELECT token, racha_id, expira_em, usado_em
+       FROM entrada_tokens
+       WHERE token = $1 AND racha_id = $2
+       FOR UPDATE`,
+      [txToken, rachaId],
+    );
+    const row = tokRes.rows[0];
+    if (!row) {
+      throw buildError('TOKEN_INVALIDO', 'Token de entrada inválido ou inexistente.');
+    }
+    if (row.usado_em) {
+      throw buildError('TOKEN_JA_USADO', 'Este token já foi utilizado.');
+    }
+    if (new Date(row.expira_em) <= new Date()) {
+      throw buildError('TOKEN_EXPIRADO', 'O token de entrada expirou. Atualize a página e tente de novo.');
+    }
+
+    const dupV = await tx.query(
+      'SELECT 1 FROM jogadores WHERE racha_id = $1 AND visitor_hash = $2 LIMIT 1',
+      [rachaId, visitorHash],
+    );
+    if (dupV.rows.length > 0) {
+      throw buildError(
+        'VISITOR_JA_INSCRITO',
+        'Já há uma inscrição nesta lista a partir deste aparelho.',
+      );
+    }
+
     const rachaRes = await tx.query('SELECT * FROM rachas WHERE id = $1 FOR UPDATE', [rachaId]);
     const racha = rachaRes.rows[0];
     if (!racha) {
@@ -248,15 +328,22 @@ async function adicionarJogador(rachaId, nomeOriginal, posicao = 'jogador') {
 
     try {
       await tx.query(
-        'INSERT INTO jogadores (racha_id, nome, nome_norm, posicao, suplente) VALUES ($1, $2, $3, $4, $5)',
-        [rachaId, nome, nomeNorm, posicao, inserirComoSuplente],
+        `INSERT INTO jogadores (racha_id, nome, nome_norm, posicao, suplente, visitor_hash)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [rachaId, nome, nomeNorm, posicao, inserirComoSuplente, visitorHash],
       );
     } catch (e) {
       if (e.code === '23505') {
-        throw buildError('DUPLICATE', 'Esse nome já está na lista');
+        const detail = String(e.detail || '');
+        if (detail.includes('nome_norm')) {
+          throw buildError('DUPLICATE', 'Esse nome já está na lista');
+        }
+        throw buildError('VISITOR_JA_INSCRITO', 'Já há uma inscrição nesta lista a partir deste aparelho.');
       }
       throw e;
     }
+
+    await tx.query('UPDATE entrada_tokens SET usado_em = NOW() WHERE token = $1', [txToken]);
 
     const jogadoresRes = await tx.query(
       `
