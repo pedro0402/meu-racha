@@ -16,7 +16,16 @@ vi.mock('../../src/hooks/useRacha', () => ({
 vi.mock('../../src/services/api', () => ({
   api: {
     downloadListaPdf: vi.fn().mockResolvedValue(undefined),
+    getTokenEntrada: vi.fn().mockResolvedValue({
+      token: 'mock-token',
+      expiraEm: new Date(Date.now() + 600000).toISOString(),
+    }),
+    entrarNoRacha: vi.fn().mockResolvedValue({ jogador: { nome: 'X', posicao: 'jogador' }, total: 1 }),
   },
+}));
+
+vi.mock('../../src/utils/visitorHash', () => ({
+  computeVisitorHash: vi.fn(() => Promise.resolve('ab'.repeat(32))),
 }));
 
 import RachaPage from '../../src/pages/RachaPage';
@@ -26,6 +35,7 @@ beforeEach(() => {
   mockRefresh.mockReset();
   mockUseRacha.mockReset();
   api.downloadListaPdf.mockClear();
+  api.getTokenEntrada.mockClear();
 });
 
 describe('<RachaPage />', () => {
@@ -95,7 +105,7 @@ describe('<RachaPage />', () => {
     ).toBeInTheDocument();
   });
 
-  test('mostra a entrada como suplente quando titulares estão completos e suplentes seguem abertos', () => {
+  test('mostra a entrada como suplente quando titulares estão completos e suplentes seguem abertos', async () => {
     mockUseRacha.mockReturnValue([
       {
         loading: false,
@@ -125,7 +135,7 @@ describe('<RachaPage />', () => {
       screen.getByText(/novas entradas serão registradas como suplente/i),
     ).toBeInTheDocument();
     expect(screen.queryByRole('status')).toBeNull();
-    expect(screen.getByRole('button', { name: /entrar no racha/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /entrar no racha/i })).toBeInTheDocument();
   });
 
   test('mostra baixar PDF e WhatsApp quando pdfDisponivel', async () => {
