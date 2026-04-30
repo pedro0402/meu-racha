@@ -1,11 +1,15 @@
 import { useParams } from 'react-router-dom';
+import { useState } from 'react';
 import { useRacha } from '../hooks/useRacha';
+import { api } from '../services/api';
 import JoinForm from '../components/JoinForm.jsx';
 import PlayerList from '../components/PlayerList.jsx';
 import Countdown from '../components/Countdown.jsx';
 
 export default function RachaPage() {
   const { id } = useParams();
+  const [pdfErro, setPdfErro] = useState(null);
+  const [pdfBaixando, setPdfBaixando] = useState(false);
   const [estado, { refresh }] = useRacha(id);
 
   if (estado.loading) {
@@ -45,6 +49,25 @@ export default function RachaPage() {
   const percentual = Math.min(100, Math.round((estado.titularesOcupados / estado.maxJogadores) * 100));
   const { data_abertura } = estado.racha;
   const suplentesDisponiveis = estado.suplentesHabilitados && estado.titularesOcupados >= estado.maxJogadores && estado.suplentesOcupados < estado.maxSuplentes;
+
+  const linkCompartilhavel = typeof window !== 'undefined' ? window.location.href : '';
+
+  async function handleBaixarPdf() {
+    setPdfErro(null);
+    setPdfBaixando(true);
+    try {
+      await api.downloadListaPdf(id);
+    } catch (e) {
+      setPdfErro(e.message || 'Não foi possível baixar o PDF.');
+    } finally {
+      setPdfBaixando(false);
+    }
+  }
+
+  function handleWhatsApp() {
+    const msg = `Lista do racha (${estado.racha.nome_dono}): ${linkCompartilhavel}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+  }
 
   let statusLabel = 'Lista fechada';
   let statusClass = 'status-pill status-closed';
@@ -89,7 +112,7 @@ export default function RachaPage() {
 
         {estado.fechado ? (
           <div className="alert alert-success">
-            Lista fechada! O PDF foi enviado para o organizador.
+            <strong>Lista fechada.</strong> Use os botões abaixo para baixar o PDF ou mandar o link no WhatsApp.
           </div>
         ) : !estado.listaAberta ? (
           <div className="alert alert-warn">
@@ -108,6 +131,33 @@ export default function RachaPage() {
           </div>
         ) : (
           <JoinForm rachaId={id} />
+        )}
+
+        {estado.pdfDisponivel && (
+          <div className="share-panel">
+            <p className="share-panel-title">Baixar e compartilhar</p>
+            <p className="muted share-panel-desc">
+              Baixe o PDF da lista ou envie o link desta página pelo WhatsApp para o grupo.
+            </p>
+            <div className="share-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={pdfBaixando}
+                onClick={handleBaixarPdf}
+              >
+                {pdfBaixando ? 'Baixando…' : 'Baixar PDF'}
+              </button>
+              <button type="button" className="btn btn-whatsapp" onClick={handleWhatsApp}>
+                Enviar link no WhatsApp
+              </button>
+            </div>
+            {pdfErro ? (
+              <p className="share-panel-erro" role="alert">
+                {pdfErro}
+              </p>
+            ) : null}
+          </div>
         )}
       </div>
 

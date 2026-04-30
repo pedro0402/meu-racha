@@ -13,11 +13,19 @@ vi.mock('../../src/hooks/useRacha', () => ({
   useRacha: (...args) => mockUseRacha(...args),
 }));
 
+vi.mock('../../src/services/api', () => ({
+  api: {
+    downloadListaPdf: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import RachaPage from '../../src/pages/RachaPage';
+import { api } from '../../src/services/api';
 
 beforeEach(() => {
   mockRefresh.mockReset();
   mockUseRacha.mockReset();
+  api.downloadListaPdf.mockClear();
 });
 
 describe('<RachaPage />', () => {
@@ -118,5 +126,35 @@ describe('<RachaPage />', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('status')).toBeNull();
     expect(screen.getByRole('button', { name: /entrar no racha/i })).toBeInTheDocument();
+  });
+
+  test('mostra baixar PDF e WhatsApp quando pdfDisponivel', async () => {
+    const user = userEvent.setup();
+    mockUseRacha.mockReturnValue([
+      {
+        loading: false,
+        error: null,
+        expirado: false,
+        racha: { nome_dono: 'Pedro', suplentes_habilitados: false, max_suplentes: 0 },
+        jogadores: [],
+        maxJogadores: 18,
+        maxSuplentes: 0,
+        titularesOcupados: 0,
+        suplentesOcupados: 0,
+        suplentesHabilitados: false,
+        listaAberta: false,
+        fechado: true,
+        pdfDisponivel: true,
+      },
+      { refresh: mockRefresh },
+    ]);
+
+    render(<RachaPage />);
+
+    expect(screen.getByRole('button', { name: /baixar pdf/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /whatsapp/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /baixar pdf/i }));
+    expect(api.downloadListaPdf).toHaveBeenCalledWith('abc');
   });
 });

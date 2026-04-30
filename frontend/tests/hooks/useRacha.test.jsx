@@ -125,4 +125,26 @@ describe('useRacha', () => {
     expect(result.current[0].error).toBeNull();
     expect(result.current[0].racha.nome_dono).toBe('Pedro');
   });
+
+  test('racha:fechado habilita pdfDisponivel', async () => {
+    api.getRacha.mockResolvedValue({
+      racha: { id: 'abc', nome_dono: 'Pedro', suplentes_habilitados: false, max_suplentes: 0 },
+      jogadores: [],
+      maxJogadores: 18,
+      listaAberta: true,
+      pdfDisponivel: false,
+    });
+
+    const { result } = renderHook(() => useRacha('abc'));
+    await waitFor(() => expect(result.current[0].loading).toBe(false));
+
+    expect(result.current[0].pdfDisponivel).toBe(false);
+
+    act(() => {
+      handlers.get('racha:fechado')();
+    });
+
+    expect(result.current[0].pdfDisponivel).toBe(true);
+    expect(result.current[0].fechado).toBe(true);
+  });
 });

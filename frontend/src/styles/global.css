@@ -471,6 +471,48 @@ a:focus-visible {
 .alert-warn { background: rgba(245, 158, 11, 0.1); color: #fde68a; border-color: rgba(245,158,11,0.3); }
 .alert-success { background: rgba(34, 197, 94, 0.1); color: #bbf7d0; border-color: rgba(34,197,94,0.3); }
 
+.share-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(50, 210, 125, 0.35);
+  background: rgba(50, 210, 125, 0.06);
+}
+
+.share-panel-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.share-panel-desc {
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-whatsapp {
+  background: #25d366;
+  color: #052e16;
+  border-color: #1da851;
+}
+
+.btn-whatsapp:hover {
+  background: #1ebe5d;
+  color: #041f10;
+}
+
+.share-panel-erro {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #fecaca;
+}
+
 .abertura-preview {
   margin: 10px 0 0;
   padding: 10px 12px;

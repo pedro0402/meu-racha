@@ -23,6 +23,7 @@ export function useRacha(rachaId) {
     listaAberta: false,
     fechado: false,
     expirado: false,
+    pdfDisponivel: false,
   });
 
   function buildState(data) {
@@ -42,6 +43,7 @@ export function useRacha(rachaId) {
       maxSuplentes,
       suplentesHabilitados,
       fechado: suplentesHabilitados ? (titularesCompletos && suplentesCompletos) : titularesCompletos,
+      pdfDisponivel: Boolean(data.pdfDisponivel),
     };
   }
 
@@ -63,6 +65,7 @@ export function useRacha(rachaId) {
           suplentesHabilitados: nextState.suplentesHabilitados,
           listaAberta: nextState.listaAberta,
           fechado: nextState.fechado,
+          pdfDisponivel: nextState.pdfDisponivel,
         }));
       })
       .catch((err) => {
@@ -109,7 +112,7 @@ export function useRacha(rachaId) {
     };
     const onFechado = () => {
       if (!ativo) return;
-      setEstado((s) => ({ ...s, fechado: true }));
+      setEstado((s) => ({ ...s, fechado: true, pdfDisponivel: true }));
     };
 
     socket.on('jogadores:atualizados', onUpdate);

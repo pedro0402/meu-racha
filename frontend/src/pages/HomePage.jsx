@@ -9,7 +9,7 @@ export default function HomePage() {
           <h1>Sua lista em tempo real, sem mensagem perdida no grupo.</h1>
           <p>
             Crie o racha, compartilhe o link e acompanhe as vagas ao vivo.
-            Quando a capacidade for atingida, a lista fecha automaticamente e o PDF vai para seu e-mail.
+            Quando a capacidade for atingida, a lista fecha automaticamente e o PDF fica na página para baixar ou mandar pelo WhatsApp.
           </p>
           <div className="hero-actions">
             <Link to="/criar" className="btn btn-primary">
@@ -27,7 +27,7 @@ export default function HomePage() {
             <li>Ordem de chegada justa</li>
             <li>Atualização instantânea entre dispositivos</li>
             <li>Fechamento automático ao atingir limite</li>
-            <li>PDF final enviado ao organizador</li>
+            <li>PDF para baixar e link para o grupo</li>
           </ul>
         </aside>
       </section>
@@ -48,7 +48,7 @@ export default function HomePage() {
           <article className="step-card">
             <span className="step-num">03</span>
             <h3>Fechamento automático</h3>
-            <p>Ao completar as vagas, a lista trava e você recebe o PDF final por e-mail.</p>
+            <p>Ao completar as vagas, a lista trava e você baixa o PDF na própria página e pode mandar o link no WhatsApp.</p>
           </article>
         </div>
       </section>

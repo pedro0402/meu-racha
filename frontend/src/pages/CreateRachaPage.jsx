@@ -34,7 +34,7 @@ function maskTelefone(value) {
 }
 
 function normalizeEmail(value) {
-  return value.toLowerCase().replace(/\s+/g, '');
+  return String(value || '').toLowerCase().replace(/\s+/g, '');
 }
 
 function onlyDigits(value) {
@@ -123,7 +123,7 @@ export default function CreateRachaPage() {
       const data = await api.criarRacha({
         nome_dono: form.nome_dono.trim(),
         email: normalizeEmail(form.email),
-        telefone: onlyDigits(form.telefone),
+        telefone: onlyDigits(form.telefone || ''),
         max_jogadores: Number(form.max_jogadores),
         data_abertura: `${dataISO}T${form.hora}`,
         suplentes_habilitados: form.suplentes_habilitados,
@@ -184,12 +184,12 @@ export default function CreateRachaPage() {
     <form className="card" onSubmit={onSubmit}>
       <h2>Criar racha</h2>
       <p className="muted form-intro">
-        Preencha os dados abaixo para abrir sua lista com controle de vagas e entrada em tempo real.
+        Preencha os dados para gerar o link da lista. Quando as vagas fecharem, o PDF fica disponível na própria página para baixar e para mandar o link no WhatsApp.
       </p>
 
       <div className="quick-checklist" aria-label="resumo do fluxo">
-        <span>1. Defina os dados</span>
-        <span>2. Gere o link</span>
+        <span>1. Defina nome, e-mail, telefone e horário</span>
+        <span>2. Gere e copie o link</span>
         <span>3. Compartilhe com a galera</span>
       </div>
 
@@ -205,9 +205,10 @@ export default function CreateRachaPage() {
         />
       </label>
 
-      <label>
-        E-mail (receberá o PDF da lista)
+      <label htmlFor="criar-racha-email">
+        E-mail
         <input
+          id="criar-racha-email"
           type="email"
           value={form.email}
           onChange={update('email')}
@@ -215,7 +216,7 @@ export default function CreateRachaPage() {
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck="false"
-          placeholder="voce@email.com"
+          placeholder="nome@email.com"
           required
         />
       </label>

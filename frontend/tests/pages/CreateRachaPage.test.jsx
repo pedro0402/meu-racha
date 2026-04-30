@@ -70,9 +70,9 @@ describe('<CreateRachaPage />', () => {
   test('renderiza checklist rápido do fluxo de criação', () => {
     render(<CreateRachaPage />);
 
-    expect(screen.getByText(/1. defina os dados/i)).toBeInTheDocument();
-    expect(screen.getByText(/2. gere o link/i)).toBeInTheDocument();
-    expect(screen.getByText(/3. compartilhe com a galera/i)).toBeInTheDocument();
+    expect(screen.getByText(/1\. defina nome, e-mail, telefone e horário/i)).toBeInTheDocument();
+    expect(screen.getByText(/2\. gere e copie o link/i)).toBeInTheDocument();
+    expect(screen.getByText(/3\. compartilhe com a galera/i)).toBeInTheDocument();
   });
 
   test('formata telefone com máscara brasileira', async () => {
@@ -99,7 +99,7 @@ describe('<CreateRachaPage />', () => {
     const user = userEvent.setup();
     render(<CreateRachaPage />);
 
-    const email = screen.getByLabelText(/^e-mail/i);
+    const email = screen.getByLabelText(/^e-mail$/i);
     await user.type(email, 'Joao.Silva+TESTE@Exemplo.COM ');
 
     expect(email).toHaveValue('joao.silva+teste@exemplo.com');
@@ -115,7 +115,7 @@ describe('<CreateRachaPage />', () => {
     render(<CreateRachaPage />);
 
     await user.type(screen.getByLabelText(/seu nome/i), 'João');
-    await user.type(screen.getByLabelText(/^e-mail/i), 'joao@example.com');
+    await user.type(screen.getByLabelText(/^e-mail$/i), 'joao@example.com');
     await user.type(screen.getByLabelText(/telefone/i), '11988887777');
 
     const maxInput = screen.getByLabelText(/máximo de jogadores/i);
@@ -154,7 +154,7 @@ describe('<CreateRachaPage />', () => {
     render(<CreateRachaPage />);
 
     await user.type(screen.getByLabelText(/seu nome/i), 'João');
-    await user.type(screen.getByLabelText(/^e-mail/i), 'joao@example.com');
+    await user.type(screen.getByLabelText(/^e-mail$/i), 'joao@example.com');
     await user.type(screen.getByLabelText(/telefone/i), '11988887777');
     await user.clear(screen.getByLabelText(/máximo de jogadores/i));
     await user.type(screen.getByLabelText(/máximo de jogadores/i), '10');
@@ -204,7 +204,7 @@ describe('<CreateRachaPage />', () => {
     render(<CreateRachaPage />);
 
     await user.type(screen.getByLabelText(/seu nome/i), 'João');
-    await user.type(screen.getByLabelText(/^e-mail/i), 'joao@example.com');
+    await user.type(screen.getByLabelText(/^e-mail$/i), 'joao@example.com');
     await user.type(screen.getByLabelText(/telefone/i), '11988887777');
     await user.clear(screen.getByLabelText(/máximo de jogadores/i));
     await user.type(screen.getByLabelText(/máximo de jogadores/i), '10');
@@ -234,7 +234,7 @@ describe('<CreateRachaPage />', () => {
     render(<CreateRachaPage />);
 
     await user.type(screen.getByLabelText(/seu nome/i), 'João');
-    await user.type(screen.getByLabelText(/^e-mail/i), 'joao@example.com');
+    await user.type(screen.getByLabelText(/^e-mail$/i), 'joao@example.com');
     await user.type(screen.getByLabelText(/telefone/i), '11988887777');
     await user.type(screen.getByLabelText(/data/i), '01/01/2024');
     await user.type(screen.getByLabelText(/hora/i), '12:00');
@@ -248,7 +248,7 @@ describe('<CreateRachaPage />', () => {
     render(<CreateRachaPage />);
 
     await user.type(screen.getByLabelText(/seu nome/i), 'João');
-    await user.type(screen.getByLabelText(/^e-mail/i), 'joao@example.com');
+    await user.type(screen.getByLabelText(/^e-mail$/i), 'joao@example.com');
     await user.type(screen.getByLabelText(/telefone/i), '11988887777');
     await user.type(screen.getByLabelText(/data/i), '31/12');
     await user.type(screen.getByLabelText(/hora/i), '12:00');
@@ -257,4 +257,5 @@ describe('<CreateRachaPage />', () => {
     expect(screen.getByText(/preencha data e hora de abertura no formato correto/i)).toBeInTheDocument();
     expect(api.criarRacha).not.toHaveBeenCalled();
   });
+
 });
