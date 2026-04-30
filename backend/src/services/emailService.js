@@ -1,7 +1,30 @@
+const dns = require('dns').promises;
+const net = require('net');
 const nodemailer = require('nodemailer');
 const config = require('../config');
 
 let cachedTransporter = null;
+
+/**
+ * Resolve hostname para IPv4 e define SNI (servername) para TLS/STARTTLS.
+ * Nodemailer escolhe aleatoriamente entre A e AAAA; em provedores sem rota IPv6
+ * (ex.: Render → Gmail) o AAAA pode falhar com ENETUNREACH.
+ */
+async function hostParaConexaoSmtp(hostname) {
+  if (!config.smtp.forceIpv4 || net.isIP(hostname)) {
+    return { host: hostname, tlsServername: null };
+  }
+  try {
+    const addrs = await dns.resolve4(hostname);
+    if (addrs.length > 0) {
+      const pick = addrs[Math.floor(Math.random() * addrs.length)];
+      return { host: pick, tlsServername: hostname };
+    }
+  } catch (_err) {
+    /* fallback: nodemailer resolve como antes */
+  }
+  return { host: hostname, tlsServername: null };
+}
 
 /**
  * Verdadeiro só quando há credenciais SMTP completas (host + user + pass).
@@ -21,13 +44,19 @@ async function getTransporter() {
   if (cachedTransporter) return cachedTransporter;
 
   if (smtpEstaConfiguradoComSenha()) {
+    const { host, tlsServername } = await hostParaConexaoSmtp(config.smtp.host);
+    const tls =
+      tlsServername != null ? { servername: tlsServername } : undefined;
     cachedTransporter = nodemailer.createTransport({
-      host: config.smtp.host,
+      host,
       port: config.smtp.port,
       secure: config.smtp.port === 465,
       auth: { user: config.smtp.user, pass: config.smtp.pass },
+      ...(tls ? { tls } : {}),
     });
-    console.log(`[email] Usando SMTP real: ${config.smtp.host} (${config.smtp.user})`);
+    const hostLog =
+      host !== config.smtp.host ? `${config.smtp.host} → ${host}` : config.smtp.host;
+    console.log(`[email] Usando SMTP real: ${hostLog} (${config.smtp.user})`);
   } else {
     if (config.smtp.host && !config.smtp.pass) {
       console.warn(
@@ -83,4 +112,11 @@ async function enviarPdfRacha({ destinatario, racha, pdfPath, tipo = 'final' }) 
   return info;
 }
 
-module.exports = { enviarPdfRacha };
+module.exports = {
+  enviarPdfRacha,
+  hostParaConexaoSmtp,
+  /** Limpa transporter em cache (útil em testes). */
+  resetTransporterCache: () => {
+    cachedTransporter = null;
+  },
+};

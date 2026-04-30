@@ -40,6 +40,9 @@ const config = {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
     from: process.env.SMTP_FROM || 'MeuRacha <noreply@meuracha.app>',
+    /** Em hosts (ex.: Render) IPv6 para SMTP externo pode ser inalcançável; forçar A + SNI evita ENETUNREACH. */
+    forceIpv4:
+      process.env.SMTP_FORCE_IPV4 !== '0' && process.env.SMTP_FORCE_IPV4 !== 'false',
   },
 };
 
