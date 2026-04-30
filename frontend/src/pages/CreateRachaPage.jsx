@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { formatDataAberturaBR } from '../utils/formatDataAberturaBR.js';
 
 function maskData(value) {
   const digits = value.replace(/\D/g, '').slice(0, 8);
@@ -167,7 +168,7 @@ export default function CreateRachaPage() {
         </div>
         {criado.racha.data_abertura && (
           <p className="muted">
-            A lista abre em <strong>{criado.racha.data_abertura.replace('T', ' ')}</strong>.
+            A lista abre em <strong>{formatDataAberturaBR(criado.racha.data_abertura)}</strong>.
           </p>
         )}
         <button

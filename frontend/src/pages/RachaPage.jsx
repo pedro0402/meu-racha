@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import JoinForm from '../components/JoinForm.jsx';
 import PlayerList from '../components/PlayerList.jsx';
 import Countdown from '../components/Countdown.jsx';
+import { formatDataAberturaBR } from '../utils/formatDataAberturaBR.js';
 
 export default function RachaPage() {
   const { id } = useParams();
@@ -123,7 +124,7 @@ export default function RachaPage() {
                   onElapsed={refresh}
                 />
                 <br />
-                <small>Horário de abertura: {data_abertura.replace('T', ' ')}</small>
+                <small>Horário de abertura: {formatDataAberturaBR(data_abertura)}</small>
               </>
             ) : (
               <>A lista ainda está fechada.</>
