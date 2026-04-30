@@ -5,6 +5,14 @@ const path = require('path');
 const pdfsDir = path.join(__dirname, '..', '..', 'pdfs');
 if (!fs.existsSync(pdfsDir)) fs.mkdirSync(pdfsDir, { recursive: true });
 
+function getPdfPathForRacha(rachaId) {
+  return path.join(pdfsDir, `racha-${rachaId}.pdf`);
+}
+
+function arquivoPdfExiste(rachaId) {
+  return fs.existsSync(getPdfPathForRacha(rachaId));
+}
+
 function getPosicaoLabel(posicao) {
   return posicao === 'goleiro' ? 'Goleiro' : 'Jogador';
 }
@@ -15,8 +23,7 @@ function getPosicaoLabel(posicao) {
  */
 function gerarPdfRacha({ racha, jogadores }) {
   return new Promise((resolve, reject) => {
-    const fileName = `racha-${racha.id}.pdf`;
-    const filePath = path.join(pdfsDir, fileName);
+    const filePath = getPdfPathForRacha(racha.id);
 
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const stream = fs.createWriteStream(filePath);
@@ -72,4 +79,4 @@ function gerarPdfRacha({ racha, jogadores }) {
   });
 }
 
-module.exports = { gerarPdfRacha };
+module.exports = { gerarPdfRacha, getPdfPathForRacha, arquivoPdfExiste, pdfsDir };

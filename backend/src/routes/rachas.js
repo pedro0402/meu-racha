@@ -1,7 +1,7 @@
 const express = require('express');
 const rachaService = require('../services/rachaService');
-const { gerarPdfRacha } = require('../services/pdfService');
-const { enviarPdfRacha } = require('../services/emailService');
+const { gerarPdfRacha, getPdfPathForRacha, arquivoPdfExiste } = require('../services/pdfService');
+const fs = require('fs');
 const validateTime = require('../middleware/validateTime');
 const {
   isListaAbertaParaRacha,
@@ -19,6 +19,12 @@ const LIMITES_CRIACAO = {
 
 function getShareBaseUrl() {
   return config.frontendUrl || 'http://localhost:5173';
+}
+
+/** SQLite 0/1, Postgres boolean — indica se algum fechamento já gerou PDF. */
+function pdfRegistradoNoBanco(racha) {
+  if (!racha) return false;
+  return Boolean(racha.pdf_gerado_titulares) || Boolean(racha.pdf_gerado_final);
 }
 
 function campoExcedeLimite(valor, limite) {
@@ -40,7 +46,10 @@ function buildRouter(io) {
         suplentes_habilitados,
         max_suplentes,
       } = req.body || {};
-      if (!nome_dono || !email || !telefone) {
+      const emailNorm =
+        typeof email === 'string' && email.trim() ? email.trim() : '';
+
+      if (!nome_dono || !telefone || !emailNorm) {
         return res.status(400).json({
           error: 'CAMPOS_OBRIGATORIOS',
           message: 'Informe nome_dono, email e telefone.',
@@ -54,7 +63,7 @@ function buildRouter(io) {
         });
       }
 
-      if (campoExcedeLimite(email, LIMITES_CRIACAO.email)) {
+      if (campoExcedeLimite(emailNorm, LIMITES_CRIACAO.email)) {
         return res.status(400).json({
           error: 'EMAIL_INVALIDO',
           message: 'email deve ter no máximo 254 caracteres.',
@@ -68,7 +77,7 @@ function buildRouter(io) {
         });
       }
 
-      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm);
       if (!emailOk) {
         return res.status(400).json({ error: 'EMAIL_INVALIDO' });
       }
@@ -104,7 +113,7 @@ function buildRouter(io) {
 
       const racha = await rachaService.criarRacha({
         nome_dono: nome_dono.trim(),
-        email: email.trim(),
+        email: emailNorm,
         telefone: telefone.trim(),
         data_abertura: dataAberturaNorm,
         max_jogadores: maxJogadoresNorm,
@@ -118,6 +127,42 @@ function buildRouter(io) {
       });
     } catch (err) {
       console.error('[POST /api/rachas] erro:', err);
+      return res.status(500).json({ error: 'INTERNAL', message: 'Erro interno' });
+    }
+  });
+
+  // -------- Download do PDF (mesma regra de acesso do GET racha: quem tem o id) --------
+  router.get('/:id/pdf', async (req, res) => {
+    try {
+      const racha = await rachaService.getRacha(req.params.id);
+      if (!racha) return res.status(404).json({ error: 'RACHA_NAO_ENCONTRADO' });
+      if (isRachaExpirada(racha)) {
+        return res.status(410).json({
+          error: 'LISTA_EXPIRADA',
+          message: 'A lista deste racha expirou.',
+        });
+      }
+      if (!pdfRegistradoNoBanco(racha)) {
+        return res.status(404).json({
+          error: 'PDF_INDISPONIVEL',
+          message: 'O PDF ainda não foi gerado (lista ainda não fechou).',
+        });
+      }
+      if (!arquivoPdfExiste(racha.id)) {
+        return res.status(404).json({
+          error: 'PDF_INDISPONIVEL',
+          message: 'Arquivo PDF não encontrado no servidor.',
+        });
+      }
+      const pdfPath = getPdfPathForRacha(racha.id);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="lista-racha-${racha.id}.pdf"`,
+      );
+      fs.createReadStream(pdfPath).pipe(res);
+    } catch (err) {
+      console.error('[GET /api/rachas/:id/pdf] erro:', err);
       return res.status(500).json({ error: 'INTERNAL', message: 'Erro interno' });
     }
   });
@@ -138,11 +183,13 @@ function buildRouter(io) {
       }
 
       const jogadores = await rachaService.listarJogadores(racha.id);
+      const pdfDisponivel = pdfRegistradoNoBanco(racha) && arquivoPdfExiste(racha.id);
       return res.json({
         racha: { ...racha, email: undefined, telefone: undefined },
         jogadores,
         maxJogadores: racha.max_jogadores,
         listaAberta: isListaAbertaParaRacha(racha),
+        pdfDisponivel,
         timezone: config.timezone,
         agora: nowAsLocalString(),
       });
@@ -214,7 +261,6 @@ function buildRouter(io) {
  * Fluxo de fechamento da lista.
  * - Reserva atomicamente o direito de gerar o PDF (evita duplicidade).
  * - Gera PDF.
- * - Envia por e-mail ao dono.
  * - Emite evento em tempo real.
  */
 async function fecharRacha(rachaId, io, tipo = 'final') {
@@ -224,18 +270,7 @@ async function fecharRacha(rachaId, io, tipo = 'final') {
   const racha = await rachaService.getRacha(rachaId);
   const jogadores = await rachaService.listarJogadores(rachaId);
 
-  const pdfPath = await gerarPdfRacha({ racha, jogadores });
-
-  try {
-    await enviarPdfRacha({
-      destinatario: racha.email,
-      racha,
-      pdfPath,
-      tipo,
-    });
-  } catch (err) {
-    console.error('[email] falha ao enviar PDF:', err.message);
-  }
+  await gerarPdfRacha({ racha, jogadores });
 
   io.to(`racha:${rachaId}`).emit('racha:fechado', {
     rachaId,

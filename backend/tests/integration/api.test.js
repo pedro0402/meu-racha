@@ -1,10 +1,6 @@
-// Mockamos PDF e e-mail para que o fechamento da lista não tente
-// escrever em disco nem mandar SMTP nos testes.
+// Mockamos PDF para que o fechamento da lista não tente escrever em disco nos testes.
 jest.mock('../../src/services/pdfService', () => ({
   gerarPdfRacha: jest.fn().mockResolvedValue('/tmp/fake.pdf'),
-}));
-jest.mock('../../src/services/emailService', () => ({
-  enviarPdfRacha: jest.fn().mockResolvedValue({ messageId: 'fake' }),
 }));
 
 const request = require('supertest');
@@ -13,7 +9,6 @@ const config = require('../../src/config');
 const db = require('../../src/db/database');
 const rachaService = require('../../src/services/rachaService');
 const { gerarPdfRacha } = require('../../src/services/pdfService');
-const { enviarPdfRacha } = require('../../src/services/emailService');
 
 let app;
 
@@ -121,6 +116,14 @@ describe('POST /api/rachas', () => {
     } finally {
       config.frontendUrl = original;
     }
+  });
+
+  test('400 quando e-mail está vazio', async () => {
+    const res = await request(app)
+      .post('/api/rachas')
+      .send(corpoCriacao({ email: '' }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('CAMPOS_OBRIGATORIOS');
   });
 
   test('400 quando faltam campos', async () => {
@@ -257,6 +260,7 @@ describe('GET /api/rachas/:id', () => {
     expect(res.body.racha.telefone).toBeUndefined();
     expect(res.body.maxJogadores).toBe(18);
     expect(res.body.timezone).toBe('America/Sao_Paulo');
+    expect(res.body.pdfDisponivel).toBe(false);
   });
 
   test('retorna maxJogadores com valor customizado do racha', async () => {
@@ -267,6 +271,16 @@ describe('GET /api/rachas/:id', () => {
     const res = await request(app).get(`/api/rachas/${criado.body.racha.id}`);
     expect(res.status).toBe(200);
     expect(res.body.maxJogadores).toBe(7);
+  });
+});
+
+describe('GET /api/rachas/:id/pdf', () => {
+  test('404 quando o PDF ainda não foi gerado', async () => {
+    const criado = await request(app).post('/api/rachas').send(corpoCriacao());
+    const id = criado.body.racha.id;
+    const res = await request(app).get(`/api/rachas/${id}/pdf`);
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('PDF_INDISPONIVEL');
   });
 });
 
@@ -373,7 +387,7 @@ describe('POST /api/rachas/:id/jogadores', () => {
     expect(res.status).toBe(403);
   });
 
-  test('ao atingir o limite configurado, dispara geração de PDF e e-mail UMA ÚNICA VEZ', async () => {
+  test('ao atingir o limite configurado, dispara geração de PDF UMA ÚNICA VEZ', async () => {
     const id = await criarRacha({ max_jogadores: 4 });
     for (let i = 0; i < 4; i++) {
       await request(app)
@@ -386,9 +400,5 @@ describe('POST /api/rachas/:id/jogadores', () => {
     await new Promise((r) => setImmediate(r));
 
     expect(gerarPdfRacha).toHaveBeenCalledTimes(1);
-    expect(enviarPdfRacha).toHaveBeenCalledTimes(1);
-    expect(enviarPdfRacha).toHaveBeenCalledWith(
-      expect.objectContaining({ destinatario: 'pedro@x.com' }),
-    );
   });
 });

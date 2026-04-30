@@ -1,9 +1,6 @@
 jest.mock('../../src/services/pdfService', () => ({
   gerarPdfRacha: jest.fn().mockResolvedValue('/tmp/fake.pdf'),
 }));
-jest.mock('../../src/services/emailService', () => ({
-  enviarPdfRacha: jest.fn().mockResolvedValue({ messageId: 'fake' }),
-}));
 
 const { createApp } = require('../../src/app');
 const db = require('../../src/db/database');
