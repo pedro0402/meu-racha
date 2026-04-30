@@ -427,6 +427,35 @@ describe('POST /api/rachas/:id/jogadores', () => {
 
     expect(gerarPdfRacha).toHaveBeenCalledTimes(1);
   });
+
+  test('regenera PDF ao incluir suplentes antes de lotar todas as vagas de suplente', async () => {
+    const id = await criarRacha({
+      max_jogadores: 2,
+      suplentes_habilitados: true,
+      max_suplentes: 3,
+    });
+
+    await postJogador(app, id, 'T1', { visitorSeed: 't1' });
+    await postJogador(app, id, 'T2', { visitorSeed: 't2' });
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    expect(gerarPdfRacha).toHaveBeenCalledTimes(1);
+
+    await postJogador(app, id, 'S1', { visitorSeed: 's1' });
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    expect(gerarPdfRacha).toHaveBeenCalledTimes(2);
+
+    await postJogador(app, id, 'S2', { visitorSeed: 's2' });
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    expect(gerarPdfRacha).toHaveBeenCalledTimes(3);
+
+    await postJogador(app, id, 'S3', { visitorSeed: 's3' });
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    expect(gerarPdfRacha).toHaveBeenCalledTimes(4);
+  });
 });
 
 describe('GET /api/rachas/:id/token-entrada', () => {

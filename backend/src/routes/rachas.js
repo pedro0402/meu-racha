@@ -276,6 +276,26 @@ function buildRouter(io) {
       });
     }
 
+    // Titulares cheios geram PDF só com titulares; cada novo suplente precisa atualizar o arquivo
+    // para incluir a seção de suplentes antes do fechamento total.
+    const rachaAtual = await rachaService.getRacha(req.params.id);
+    if (rachaAtual && rachaAtual.suplentes_habilitados) {
+      const limiteTit = rachaAtual.max_jogadores;
+      const limiteSup = Number(rachaAtual.max_suplentes || 0);
+      const titularesN = resultado.jogadores.filter((j) => !j.suplente).length;
+      const suplentesN = resultado.jogadores.filter((j) => j.suplente).length;
+      if (
+        limiteSup > 0 &&
+        titularesN >= limiteTit &&
+        suplentesN > 0 &&
+        suplentesN < limiteSup
+      ) {
+        regenerarPdfLista(req.params.id).catch((err) => {
+          console.error('[regenerarPdfLista] erro:', err);
+        });
+      }
+    }
+
     return res.status(201).json({
       jogador: resultado.jogador,
       total: resultado.jogadores.length,
@@ -283,6 +303,18 @@ function buildRouter(io) {
   });
 
   return router;
+}
+
+/**
+ * Sobrescreve o PDF com titulares + suplentes atuais (sem mudar flags no banco).
+ * Usado enquanto ainda há vagas de suplente: o primeiro snapshot (só titulares)
+ * não inclui quem entrou como suplente depois.
+ */
+async function regenerarPdfLista(rachaId) {
+  const racha = await rachaService.getRacha(rachaId);
+  if (!racha) return;
+  const jogadores = await rachaService.listarJogadores(rachaId);
+  await gerarPdfRacha({ racha, jogadores });
 }
 
 /**
