@@ -51,6 +51,18 @@ function init() {
 
     CREATE INDEX IF NOT EXISTS idx_jogadores_racha
       ON jogadores(racha_id, data_entrada);
+
+    CREATE TABLE IF NOT EXISTS entrada_tokens (
+      token       TEXT PRIMARY KEY,
+      racha_id    TEXT NOT NULL,
+      expira_em   TEXT NOT NULL,
+      usado_em    TEXT,
+      criado_em   TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (racha_id) REFERENCES rachas(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_entrada_tokens_racha_expira
+      ON entrada_tokens(racha_id, expira_em);
   `);
 
   const cols = db.prepare(`PRAGMA table_info(rachas)`).all();
@@ -83,6 +95,15 @@ function init() {
   if (!jogadoresCols.some((c) => c.name === 'suplente')) {
     db.exec(`ALTER TABLE jogadores ADD COLUMN suplente INTEGER NOT NULL DEFAULT 0`);
   }
+  if (!jogadoresCols.some((c) => c.name === 'visitor_hash')) {
+    db.exec(`ALTER TABLE jogadores ADD COLUMN visitor_hash TEXT`);
+  }
+
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_jogadores_racha_visitor
+      ON jogadores(racha_id, visitor_hash)
+      WHERE visitor_hash IS NOT NULL AND visitor_hash != '';
+  `);
 }
 
 init();
@@ -91,7 +112,7 @@ init();
  * Apaga todos os dados (apenas para uso em testes).
  */
 function _resetForTests() {
-  db.exec(`DELETE FROM jogadores; DELETE FROM rachas;`);
+  db.exec(`DELETE FROM entrada_tokens; DELETE FROM jogadores; DELETE FROM rachas;`);
 }
 
 module.exports = db;

@@ -119,3 +119,21 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_jogadores_racha
   ON jogadores(racha_id, data_entrada);
+
+ALTER TABLE jogadores
+  ADD COLUMN IF NOT EXISTS visitor_hash TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_jogadores_racha_visitor
+  ON jogadores(racha_id, visitor_hash)
+  WHERE visitor_hash IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS entrada_tokens (
+  token       TEXT PRIMARY KEY,
+  racha_id    TEXT NOT NULL REFERENCES rachas(id) ON DELETE CASCADE,
+  expira_em   TIMESTAMPTZ NOT NULL,
+  usado_em    TIMESTAMPTZ,
+  criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_entrada_tokens_racha_expira
+  ON entrada_tokens(racha_id, expira_em);
