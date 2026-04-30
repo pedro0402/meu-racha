@@ -2,6 +2,7 @@ export default function PlayerList({ jogadores, max, suplentesHabilitados = fals
   const titulares = jogadores.filter((j) => !j.suplente);
   const suplentes = jogadores.filter((j) => j.suplente);
   const totalTitulares = titulares.length;
+  const titularesCompletos = totalTitulares >= max;
   const slots = Array.from({ length: max }, (_, i) => titulares[i] || null);
 
   const getPosicaoLabel = (posicao) => {
@@ -42,10 +43,16 @@ export default function PlayerList({ jogadores, max, suplentesHabilitados = fals
         </ol>
       </div>
 
-      {suplentesHabilitados && suplentes.length > 0 && (
+      {suplentesHabilitados && (titularesCompletos || suplentes.length > 0) && (
         <div className="card">
           <h3>Suplentes</h3>
-          <p className="muted">{suplentes.length} suplente(s) na fila.</p>
+          <p className="muted">
+            {suplentes.length > 0
+              ? `${suplentes.length} suplente(s) na fila.`
+              : titularesCompletos
+                ? 'Titulares completos. Novas entradas aparecem aqui como suplente.'
+                : 'Nenhum suplente na fila.'}
+          </p>
           <ol className="player-list">
             {suplentes.map((jogador, idx) => (
               <li key={jogador.id} className="filled">

@@ -55,6 +55,24 @@ describe('<PlayerList />', () => {
     expect(container.querySelectorAll('.empty')).toHaveLength(1);
   });
 
+  test('mostra seção de suplentes vazia quando titulares estão completos', () => {
+    render(
+      <PlayerList
+        max={2}
+        suplentesHabilitados
+        jogadores={[
+          { id: 1, nome: 'A', posicao: 'jogador', suplente: false },
+          { id: 2, nome: 'B', posicao: 'jogador', suplente: false },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: /suplentes/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Titulares completos\. Novas entradas aparecem aqui como suplente/i),
+    ).toBeInTheDocument();
+  });
+
   test('separa titulares e suplentes no resumo', () => {
     render(
       <PlayerList
