@@ -54,9 +54,17 @@ export const api = {
 
   downloadListaPdf,
 
-  entrarNoRacha: (id, nome, posicao = 'jogador') =>
+  entrarNoRacha: (id, nome, posicao = 'jogador', entradaToken, visitorHash) =>
     request(`/api/rachas/${id}/jogadores`, {
       method: 'POST',
-      body: { nome, posicao },
+      body: {
+        nome,
+        posicao,
+        entrada_token: entradaToken,
+        visitor_hash: visitorHash,
+      },
     }),
+
+  /** Token descartável para uma tentativa de entrada (uso único no POST). */
+  getTokenEntrada: (id) => request(`/api/rachas/${id}/token-entrada`),
 };

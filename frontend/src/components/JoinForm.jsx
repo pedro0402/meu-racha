@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import { computeVisitorHash } from '../utils/visitorHash';
 
 function mapJoinError(err) {
   const byCode = {
@@ -11,6 +12,13 @@ function mapJoinError(err) {
     LISTA_EXPIRADA: 'Esta lista expirou e nao aceita novas entradas.',
     RACHA_NAO_ENCONTRADO: 'Nao encontramos esse racha. Confira o link.',
     POSICAO_INVALIDA: 'Escolha uma posição válida (goleiro ou jogador).',
+    VISITOR_JA_INSCRITO:
+      'Ja existe uma inscricao nesta lista a partir deste aparelho.',
+    TOKEN_EXPIRADO: 'Sua sessao de entrada expirou. Recarregue a pagina.',
+    TOKEN_INVALIDO: 'Sessao invalida. Recarregue a pagina.',
+    TOKEN_JA_USADO: 'Este convite ja foi usado. Recarregue a pagina.',
+    TOKEN_OBRIGATORIO: 'Recarregue a pagina e tente novamente.',
+    VISITOR_HASH_INVALIDO: 'Recarregue a pagina e tente novamente.',
   };
 
   if (err?.code && byCode[err.code]) return byCode[err.code];
@@ -23,16 +31,55 @@ export default function JoinForm({ rachaId }) {
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [loading, setLoading] = useState(false);
-  const canSubmit = Boolean(nome.trim()) && !loading;
+  const [entradaToken, setEntradaToken] = useState('');
+  const [visitorHash, setVisitorHash] = useState('');
+  const [sessaoPronta, setSessaoPronta] = useState(false);
+  const [sessaoErro, setSessaoErro] = useState('');
+  const [sessaoLoading, setSessaoLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    setSessaoLoading(true);
+    setSessaoErro('');
+    (async () => {
+      try {
+        const [tok, vh] = await Promise.all([
+          api.getTokenEntrada(rachaId),
+          computeVisitorHash(),
+        ]);
+        if (cancelado) return;
+        setEntradaToken(tok.token);
+        setVisitorHash(vh);
+        setSessaoPronta(true);
+      } catch (e) {
+        if (!cancelado) {
+          setSessaoErro(mapJoinError(e) || e.message || 'Não foi possível preparar o formulário.');
+          setSessaoPronta(false);
+        }
+      } finally {
+        if (!cancelado) setSessaoLoading(false);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [rachaId]);
+
+  const canSubmit =
+    Boolean(nome.trim()) &&
+    !loading &&
+    sessaoPronta &&
+    Boolean(entradaToken) &&
+    Boolean(visitorHash);
 
   async function onSubmit(e) {
     e.preventDefault();
-    if (!nome.trim()) return;
+    if (!nome.trim() || !sessaoPronta) return;
     setErro('');
     setSucesso('');
     setLoading(true);
     try {
-      const res = await api.entrarNoRacha(rachaId, nome, posicao);
+      const res = await api.entrarNoRacha(rachaId, nome, posicao, entradaToken, visitorHash);
       setNome('');
       setPosicao('jogador');
       if (res?.jogador?.suplente) {
@@ -40,15 +87,45 @@ export default function JoinForm({ rachaId }) {
       } else {
         setSucesso('Entrada confirmada. Boa sorte no racha!');
       }
+      const tok = await api.getTokenEntrada(rachaId);
+      setEntradaToken(tok.token);
     } catch (err) {
       setErro(mapJoinError(err));
+      if (err?.code === 'TOKEN_EXPIRADO' || err?.code === 'TOKEN_JA_USADO' || err?.code === 'TOKEN_INVALIDO') {
+        try {
+          const tok = await api.getTokenEntrada(rachaId);
+          setEntradaToken(tok.token);
+        } catch (_e) {
+          setSessaoErro('Recarregue a página para obter um novo convite de entrada.');
+        }
+      }
     } finally {
       setLoading(false);
     }
   }
 
+  if (sessaoLoading) {
+    return (
+      <div className="join-form join-form-loading muted" aria-busy="true">
+        Preparando entrada segura…
+      </div>
+    );
+  }
+
+  if (sessaoErro && !sessaoPronta) {
+    return (
+      <div className="alert alert-error" role="alert">
+        {sessaoErro}
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={onSubmit} className="join-form">
+      <p className="muted join-form-privacy" style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+        Para evitar várias inscrições no mesmo aparelho, usamos um convite descartável e um identificador
+        anônimo do navegador (sem login).
+      </p>
       <label>
         Seu nome
         <input
@@ -61,6 +138,7 @@ export default function JoinForm({ rachaId }) {
           placeholder="Digite seu nome"
           maxLength={60}
           required
+          disabled={!sessaoPronta}
         />
       </label>
       <label>
@@ -72,6 +150,7 @@ export default function JoinForm({ rachaId }) {
             if (sucesso) setSucesso('');
           }}
           required
+          disabled={!sessaoPronta}
         >
           <option value="jogador">Jogador</option>
           <option value="goleiro">Goleiro</option>
