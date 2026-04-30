@@ -126,6 +126,56 @@ describe('useRacha', () => {
     expect(result.current[0].racha.nome_dono).toBe('Pedro');
   });
 
+  test('racha:fechado com tipo titulares mantém lista aberta se ainda houver vaga de suplente', async () => {
+    api.getRacha.mockResolvedValue({
+      racha: { id: 'abc', nome_dono: 'Pedro', suplentes_habilitados: true, max_suplentes: 2 },
+      jogadores: [
+        { id: 1, nome: 'A', suplente: false },
+        { id: 2, nome: 'B', suplente: false },
+      ],
+      maxJogadores: 2,
+      listaAberta: true,
+      pdfDisponivel: false,
+    });
+
+    const { result } = renderHook(() => useRacha('abc'));
+    await waitFor(() => expect(result.current[0].loading).toBe(false));
+
+    expect(result.current[0].fechado).toBe(false);
+
+    act(() => {
+      handlers.get('racha:fechado')({ tipo: 'titulares', rachaId: 'abc' });
+    });
+
+    expect(result.current[0].fechado).toBe(false);
+    expect(result.current[0].pdfDisponivel).toBe(true);
+  });
+
+  test('racha:fechado com tipo final encerra a lista e habilita PDF', async () => {
+    api.getRacha.mockResolvedValue({
+      racha: { id: 'abc', nome_dono: 'Pedro', suplentes_habilitados: true, max_suplentes: 2 },
+      jogadores: [
+        { id: 1, nome: 'A', suplente: false },
+        { id: 2, nome: 'B', suplente: false },
+        { id: 3, nome: 'C', suplente: true },
+        { id: 4, nome: 'D', suplente: true },
+      ],
+      maxJogadores: 2,
+      listaAberta: true,
+      pdfDisponivel: false,
+    });
+
+    const { result } = renderHook(() => useRacha('abc'));
+    await waitFor(() => expect(result.current[0].loading).toBe(false));
+
+    act(() => {
+      handlers.get('racha:fechado')({ tipo: 'final', rachaId: 'abc' });
+    });
+
+    expect(result.current[0].pdfDisponivel).toBe(true);
+    expect(result.current[0].fechado).toBe(true);
+  });
+
   test('racha:fechado habilita pdfDisponivel', async () => {
     api.getRacha.mockResolvedValue({
       racha: { id: 'abc', nome_dono: 'Pedro', suplentes_habilitados: false, max_suplentes: 0 },

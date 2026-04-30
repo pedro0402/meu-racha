@@ -110,9 +110,24 @@ export function useRacha(rachaId) {
           : jogadores.filter((j) => !j.suplente).length >= s.maxJogadores,
       }));
     };
-    const onFechado = () => {
+    const onFechado = (payload) => {
       if (!ativo) return;
-      setEstado((s) => ({ ...s, fechado: true, pdfDisponivel: true }));
+      const tipo = payload?.tipo;
+      setEstado((s) => {
+        const temFilaSuplente =
+          s.suplentesHabilitados && s.maxSuplentes > 0;
+        // Backend emite primeiro ao completar titulares (`titulares`) e depois ao
+        // completar suplentes (`final`). Só marcamos lista totalmente fechada na UI
+        // no fechamento final ou quando não há fila de suplentes.
+        const listaTotalmenteFechada =
+          tipo === 'final' || !temFilaSuplente;
+
+        return {
+          ...s,
+          fechado: listaTotalmenteFechada ? true : s.fechado,
+          pdfDisponivel: true,
+        };
+      });
     };
 
     socket.on('jogadores:atualizados', onUpdate);
