@@ -34,16 +34,6 @@ const config = {
   diaPermitido: parseInt(process.env.DIA_PERMITIDO || '0', 10),
   horaMinima: parseInt(process.env.HORA_MINIMA || '12', 10),
   timezone: process.env.TIMEZONE || 'America/Sao_Paulo',
-  smtp: {
-    host: process.env.SMTP_HOST || '',
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || '',
-    from: process.env.SMTP_FROM || 'MeuRacha <noreply@meuracha.app>',
-    /** Em hosts (ex.: Render) IPv6 para SMTP externo pode ser inalcançável; forçar A + SNI evita ENETUNREACH. */
-    forceIpv4:
-      process.env.SMTP_FORCE_IPV4 !== '0' && process.env.SMTP_FORCE_IPV4 !== 'false',
-  },
 };
 
 module.exports = config;
