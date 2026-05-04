@@ -176,6 +176,28 @@ describe('useRacha', () => {
     expect(result.current[0].fechado).toBe(true);
   });
 
+  test('pdfDisponivel true quando o banco já marcou PDF mesmo se a API diz arquivo ausente', async () => {
+    api.getRacha.mockResolvedValue({
+      racha: {
+        id: 'abc',
+        nome_dono: 'Pedro',
+        suplentes_habilitados: false,
+        max_suplentes: 0,
+        pdf_gerado_titulares: true,
+        pdf_gerado_final: false,
+      },
+      jogadores: [{ id: 1, nome: 'A', suplente: false }],
+      maxJogadores: 18,
+      listaAberta: false,
+      pdfDisponivel: false,
+    });
+
+    const { result } = renderHook(() => useRacha('abc'));
+    await waitFor(() => expect(result.current[0].loading).toBe(false));
+
+    expect(result.current[0].pdfDisponivel).toBe(true);
+  });
+
   test('racha:fechado habilita pdfDisponivel', async () => {
     api.getRacha.mockResolvedValue({
       racha: { id: 'abc', nome_dono: 'Pedro', suplentes_habilitados: false, max_suplentes: 0 },

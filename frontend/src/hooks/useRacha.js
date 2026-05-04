@@ -2,6 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
 
+/** SQLite 0/1, Postgres boolean */
+function isSuplentePlayer(j) {
+  return Boolean(j && (j.suplente === true || j.suplente === 1));
+}
+
+/** Mesma regra do backend: algum fechamento já marcou PDF no banco. */
+function rachaPdfRegistradoNoBanco(racha) {
+  if (!racha) return false;
+  return Boolean(racha.pdf_gerado_titulares) || Boolean(racha.pdf_gerado_final);
+}
+
 /**
  * Carrega o racha via REST e mantém a lista de jogadores sincronizada
  * via Socket.IO (eventos jogadores:atualizados / racha:fechado).
@@ -27,14 +38,17 @@ export function useRacha(rachaId) {
   });
 
   function buildState(data) {
-    const titulares = data.jogadores.filter((j) => !j.suplente);
-    const suplentes = data.jogadores.filter((j) => j.suplente);
+    const titulares = data.jogadores.filter((j) => !isSuplentePlayer(j));
+    const suplentes = data.jogadores.filter((j) => isSuplentePlayer(j));
     const suplentesHabilitados = Boolean(data.racha?.suplentes_habilitados);
     const maxSuplentes = Number(data.racha?.max_suplentes || 0);
     const titularesOcupados = titulares.length;
     const suplentesOcupados = suplentes.length;
     const titularesCompletos = titularesOcupados >= data.maxJogadores;
     const suplentesCompletos = !suplentesHabilitados || suplentesOcupados >= maxSuplentes;
+
+    const pdfNoDisco = Boolean(data.pdfDisponivel);
+    const pdfNoBanco = rachaPdfRegistradoNoBanco(data.racha);
 
     return {
       ...data,
@@ -43,7 +57,9 @@ export function useRacha(rachaId) {
       maxSuplentes,
       suplentesHabilitados,
       fechado: suplentesHabilitados ? (titularesCompletos && suplentesCompletos) : titularesCompletos,
-      pdfDisponivel: Boolean(data.pdfDisponivel),
+      // API exige arquivo no disco; em multi-instância ou após restart o arquivo pode
+      // não existir nesse nó, mas o banco já marca PDF gerado — ainda mostramos os botões.
+      pdfDisponivel: pdfNoDisco || pdfNoBanco,
     };
   }
 
@@ -90,6 +106,16 @@ export function useRacha(rachaId) {
 
   useEffect(() => {
     let ativo = true;
+    const resyncTimer = { id: null };
+
+    function scheduleResyncCarregar() {
+      if (resyncTimer.id) clearTimeout(resyncTimer.id);
+      resyncTimer.id = setTimeout(() => {
+        resyncTimer.id = null;
+        if (ativo) void carregar();
+      }, 450);
+    }
+
     carregar();
 
     const socket = getSocket();
@@ -97,18 +123,27 @@ export function useRacha(rachaId) {
 
     const onUpdate = ({ jogadores }) => {
       if (!ativo) return;
-      setEstado((s) => ({
-        ...s,
-        jogadores,
-        titularesOcupados: jogadores.filter((j) => !j.suplente).length,
-        suplentesOcupados: jogadores.filter((j) => j.suplente).length,
-        fechado: s.suplentesHabilitados
-          ? (
-            jogadores.filter((j) => !j.suplente).length >= s.maxJogadores
-            && jogadores.filter((j) => j.suplente).length >= s.maxSuplentes
-          )
-          : jogadores.filter((j) => !j.suplente).length >= s.maxJogadores,
-      }));
+      setEstado((s) => {
+        const titularesCount = jogadores.filter((j) => !isSuplentePlayer(j)).length;
+        const suplentesCount = jogadores.filter((j) => isSuplentePlayer(j)).length;
+
+        if (titularesCount >= s.maxJogadores) {
+          queueMicrotask(() => {
+            if (ativo) scheduleResyncCarregar();
+          });
+        }
+
+        return {
+          ...s,
+          jogadores,
+          titularesOcupados: titularesCount,
+          suplentesOcupados: suplentesCount,
+          fechado: s.suplentesHabilitados
+            ? titularesCount >= s.maxJogadores && suplentesCount >= s.maxSuplentes
+            : titularesCount >= s.maxJogadores,
+          pdfDisponivel: s.pdfDisponivel || rachaPdfRegistradoNoBanco(s.racha),
+        };
+      });
     };
     const onFechado = (payload) => {
       if (!ativo) return;
@@ -128,6 +163,7 @@ export function useRacha(rachaId) {
           pdfDisponivel: true,
         };
       });
+      scheduleResyncCarregar();
     };
 
     socket.on('jogadores:atualizados', onUpdate);
@@ -135,6 +171,7 @@ export function useRacha(rachaId) {
 
     return () => {
       ativo = false;
+      if (resyncTimer.id) clearTimeout(resyncTimer.id);
       socket.emit('racha:sair', { rachaId });
       socket.off('jogadores:atualizados', onUpdate);
       socket.off('racha:fechado', onFechado);
